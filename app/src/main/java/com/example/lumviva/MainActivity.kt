@@ -9,10 +9,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.lumviva.ui.Inicio.ui.InicioScreen
+import com.example.lumviva.ui.Reportes.ui.ReportesScreen
+import com.example.lumviva.ui.login.ui.LoginScreen
 import com.example.lumviva.ui.theme.LumVivaTheme
 
 class MainActivity : ComponentActivity() {
@@ -32,6 +35,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@Preview
 @Composable
 fun LumVivaApp() {
     val navController = rememberNavController()
@@ -41,11 +45,10 @@ fun LumVivaApp() {
             InicioScreen(navController = navController)
         }
         composable("reportes") {
-            // Aquí irá tu ReportesScreen cuando la crees
-            // Por ahora, podemos poner un placeholder
-            Surface(modifier = Modifier.fillMaxSize()) {
-                // Placeholder para ReportesScreen
-            }
+            ReportesScreen(navController = navController, userName = "Prueba")
+        }
+        composable("Login") {
+            LoginScreen(navController = navController)
         }
     }
 }
