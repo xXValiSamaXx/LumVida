@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1052984801220",
+    "project_id": "preticor-b8c0d",
+    "storage_bucket": "preticor-b8c0d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1052984801220:android:9751acfbe3cf6c7c665691",
+        "android_client_info": {
+          "package_name": "com.example.lumviva"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1052984801220-e12lbu366jt33n7sn5ni4tfkcp566lg5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_sitGGMIJT0rDtKWuP18_lbEXQPC0cpk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1052984801220-e12lbu366jt33n7sn5ni4tfkcp566lg5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

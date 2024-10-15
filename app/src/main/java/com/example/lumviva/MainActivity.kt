@@ -16,12 +16,15 @@ import androidx.navigation.compose.rememberNavController
 import com.example.lumviva.ui.Inicio.ui.InicioScreen
 import com.example.lumviva.ui.RecuperarContraseña.ui.RecuperarContraseñaScreen
 import com.example.lumviva.ui.Reportes.ui.ReportesScreen
+import com.example.lumviva.ui.crearcuenta.ui.CrearCuentaScreen
 import com.example.lumviva.ui.login.ui.LoginScreen
 import com.example.lumviva.ui.theme.LumVivaTheme
+import com.google.firebase.FirebaseApp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        FirebaseApp.initializeApp(this)
         enableEdgeToEdge()
         setContent {
             LumVivaTheme {
@@ -30,6 +33,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     LumVivaApp()
+
                 }
             }
         }
@@ -50,5 +54,6 @@ fun LumVivaApp() {
         }
         composable("login") { LoginScreen(navController) }
         composable("recuperar_contrasena") { RecuperarContraseñaScreen(navController) }
+        composable("crear_cuenta") { CrearCuentaScreen(navController) }
     }
 }
