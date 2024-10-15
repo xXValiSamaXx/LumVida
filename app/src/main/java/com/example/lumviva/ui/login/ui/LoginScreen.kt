@@ -53,7 +53,7 @@ fun LoginScreen(navController: NavController, loginViewModel: LoginViewModel = v
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedTextField(
+             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
                 label = { Text("Contraseña") },
@@ -73,7 +73,9 @@ fun LoginScreen(navController: NavController, loginViewModel: LoginViewModel = v
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            TextButton(onClick = { /* Implementar recuperación de contraseña */ }) {
+            TextButton(
+                onClick = { navController.navigate("recuperar_contrasena") }
+            ) {
                 Text("Recuperar contraseña")
             }
 

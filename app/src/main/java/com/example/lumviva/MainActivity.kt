@@ -14,6 +14,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.lumviva.ui.Inicio.ui.InicioScreen
+import com.example.lumviva.ui.RecuperarContraseña.ui.RecuperarContraseñaScreen
 import com.example.lumviva.ui.Reportes.ui.ReportesScreen
 import com.example.lumviva.ui.login.ui.LoginScreen
 import com.example.lumviva.ui.theme.LumVivaTheme
@@ -47,8 +48,7 @@ fun LumVivaApp() {
         composable("reportes") {
             ReportesScreen(navController = navController, userName = "Prueba")
         }
-        composable("Login") {
-            LoginScreen(navController = navController)
-        }
+        composable("login") { LoginScreen(navController) }
+        composable("recuperar_contrasena") { RecuperarContraseñaScreen(navController) }
     }
 }
