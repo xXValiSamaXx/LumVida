@@ -1,31 +1,54 @@
-package com.example.lumviva.ui.crearcuenta.ui
+package com.example.lumviva.ui.crearcuenta
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.lumviva.ui.auth.AuthState
+import com.example.lumviva.ui.auth.AuthViewModel
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun CrearCuentaScreen(
     navController: NavController,
-    viewModel: CrearCuentaViewModel = viewModel()
+    authViewModel: AuthViewModel = viewModel(),
+    crearCuentaViewModel: CrearCuentaViewModel = viewModel { CrearCuentaViewModel(authViewModel) }
 ) {
-    var nombreCompleto by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var confirmarEmail by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmarPassword by remember { mutableStateOf("") }
-    var mostrarPassword by remember { mutableStateOf(false) }
-    var mostrarConfirmarPassword by remember { mutableStateOf(false) }
+    val crearCuentaState by crearCuentaViewModel.state.collectAsState()
+    val authState by authViewModel.authState.collectAsState()
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    val passwordFocusRequester = remember { FocusRequester() }
+    val confirmarPasswordFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(authState) {
+        when (authState) {
+            is AuthState.Authenticated -> navController.navigate("reportes") {
+                popUpTo("login") { inclusive = true }
+            }
+            is AuthState.Error -> {
+                // Mostrar error de autenticación
+            }
+            else -> {}
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -34,100 +57,113 @@ fun CrearCuentaScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
-                "Crear Cuenta",
+                text = "Crear Cuenta",
                 style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 16.dp)
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 32.dp)
             )
-
-            Text(
-                "Para acceder a la aplicación de LumViva, es necesario registrarse. Por favor, complete la información solicitada para crear su cuenta.",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            OutlinedTextField(
-                value = nombreCompleto,
-                onValueChange = { nombreCompleto = it },
-                label = { Text("Nombre completo") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { email = it.filter { c -> c != ' ' } },
                 label = { Text("Correo electrónico") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth()
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { passwordFocusRequester.requestFocus() }
+                ),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = confirmarEmail,
-                onValueChange = { confirmarEmail = it },
-                label = { Text("Confirmar correo electrónico") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { password = it.filter { c -> c != ' ' } },
                 label = { Text("Contraseña") },
-                visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                trailingIcon = {
-                    TextButton(onClick = { mostrarPassword = !mostrarPassword }) {
-                        Text(if (mostrarPassword) "Ocultar" else "Mostrar")
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { confirmarPasswordFocusRequester.requestFocus() }
+                ),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+                    .focusRequester(passwordFocusRequester)
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = confirmarPassword,
-                onValueChange = { confirmarPassword = it },
+                onValueChange = { confirmarPassword = it.filter { c -> c != ' ' } },
                 label = { Text("Confirmar contraseña") },
-                visualTransformation = if (mostrarConfirmarPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                trailingIcon = {
-                    TextButton(onClick = { mostrarConfirmarPassword = !mostrarConfirmarPassword }) {
-                        Text(if (mostrarConfirmarPassword) "Ocultar" else "Mostrar")
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        keyboardController?.hide()
+                        crearCuentaViewModel.crearCuenta(email, password, confirmarPassword)
                     }
-                },
-                modifier = Modifier.fillMaxWidth()
+                ),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(confirmarPasswordFocusRequester)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = {
-                    viewModel.crearCuenta(nombreCompleto, email, password)
-                },
+                onClick = { crearCuentaViewModel.crearCuenta(email, password, confirmarPassword) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Ingresar")
+                Text("Crear cuenta")
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (crearCuentaState is CrearCuentaState.Error) {
+                Text(
+                    text = (crearCuentaState as CrearCuentaState.Error).message,
+                    color = Color.Red,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
 
-            Text(
-                "Al crear una cuenta en LumVivo acepta y está de acuerdo con la política de privacidad así como los términos y condiciones del gobierno municipal de Chetumal Q.ROO",
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center
-            )
+            if (authState is AuthState.Error) {
+                Text(
+                    text = (authState as AuthState.Error).message,
+                    color = Color.Red,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
+
+            if (crearCuentaState is CrearCuentaState.Loading || authState is AuthState.Loading) {
+                CircularProgressIndicator(modifier = Modifier.padding(top = 16.dp))
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("¿Ya tienes una cuenta?")
+                TextButton(onClick = { navController.navigate("login") }) {
+                    Text("Inicia sesión")
+                }
+            }
         }
     }
 }

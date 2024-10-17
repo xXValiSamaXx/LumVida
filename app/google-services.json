@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1052984801220-rd3cp2ianu4mk955sk9khsf7vdog3t8n.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.lumviva",
+            "certificate_hash": "cba8dbef5c642e6d1f5c9a3ea90b4733aab678c9"
+          }
+        },
+        {
           "client_id": "1052984801220-e12lbu366jt33n7sn5ni4tfkcp566lg5.apps.googleusercontent.com",
           "client_type": 3
         }

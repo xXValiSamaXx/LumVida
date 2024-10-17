@@ -16,10 +16,11 @@ import com.example.lumviva.ui.auth.AuthViewModel
 @Composable
 fun ReportesScreen(
     navController: NavController,
-    userName: String,
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel = viewModel(),
+    reportesViewModel: ReportesViewModel = viewModel { ReportesViewModel(authViewModel) }
 ) {
-    val isAuthenticated by authViewModel.isAuthenticated.collectAsState()
+    val userName by reportesViewModel.userName.collectAsState(initial = "")
+    val isAuthenticated by reportesViewModel.isAuthenticated.collectAsState(initial = false)
     var showAuthDialog by remember { mutableStateOf(false) }
     var currentAction by remember { mutableStateOf<() -> Unit>({}) }
 
@@ -30,58 +31,81 @@ fun ReportesScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
         ) {
-            // ... (código anterior para la barra superior y el logo)
+            Spacer(modifier = Modifier.windowInsetsTopHeight(WindowInsets.safeDrawing))
 
-            Text(
-                text = "Hola, $userName",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                "Selecciona la opción deseada",
-                style = MaterialTheme.typography.bodyLarge
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
             ) {
-                OptionButton(
-                    text = "Hacer un reporte",
-                    onClick = { navController.navigate("hacer_reporte") }
+                Text(
+                    text = "Hola, $userName",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
                 )
-                OptionButton(
-                    text = "Mis reportes",
+                Text(
+                    "Selecciona la opción deseada",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    OptionButton(
+                        text = "Hacer un reporte",
+                        onClick = { navController.navigate("hacer_reporte") }
+                    )
+                    OptionButton(
+                        text = "Mis reportes",
+                        onClick = {
+                            if (isAuthenticated) {
+                                navController.navigate("mis_reportes")
+                            } else {
+                                showAuthDialog = true
+                                currentAction = { navController.navigate("mis_reportes") }
+                            }
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
                     onClick = {
                         if (isAuthenticated) {
-                            navController.navigate("mis_reportes")
+                            navController.navigate("mi_perfil")
                         } else {
                             showAuthDialog = true
-                            currentAction = { navController.navigate("mis_reportes") }
+                            currentAction = { navController.navigate("mi_perfil") }
                         }
-                    }
-                )
-            }
+                    },
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Mi perfil")
+                }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            Button(
-                onClick = {
-                    if (isAuthenticated) {
-                        navController.navigate("mi_perfil")
-                    } else {
-                        showAuthDialog = true
-                        currentAction = { navController.navigate("mi_perfil") }
+                if (isAuthenticated) {
+                    Button(
+                        onClick = {
+                            reportesViewModel.logout()
+                            navController.navigate("login") {
+                                popUpTo("reportes") { inclusive = true }
+                            }
+                        },
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Cerrar sesión")
                     }
-                },
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Mi perfil")
+                }
             }
         }
     }
