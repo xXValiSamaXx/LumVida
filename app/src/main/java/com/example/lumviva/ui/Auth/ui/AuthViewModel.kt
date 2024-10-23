@@ -22,11 +22,10 @@ class AuthViewModel : ViewModel() {
     }
 
     private fun checkAuthState() {
-        val currentUser = auth.currentUser
-        _authState.value = if (currentUser != null) {
-            AuthState.Authenticated(currentUser)
-        } else {
-            AuthState.Unauthenticated
+        auth.currentUser?.let { user ->
+            _authState.value = AuthState.Authenticated(user)
+        } ?: run {
+            _authState.value = AuthState.Unauthenticated
         }
     }
 
@@ -35,7 +34,7 @@ class AuthViewModel : ViewModel() {
             try {
                 _authState.value = AuthState.Loading
                 auth.signInWithEmailAndPassword(email, password).await()
-                checkAuthState()
+                checkAuthState() // Esto actualizará el estado con el usuario actual
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Error de autenticación")
             }
@@ -50,8 +49,10 @@ class AuthViewModel : ViewModel() {
                     throw Exception("Google Sign-In failed")
                 }
                 val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-                auth.signInWithCredential(credential).await()
-                checkAuthState()
+                val result = auth.signInWithCredential(credential).await()
+                result.user?.let { user ->
+                    _authState.value = AuthState.Authenticated(user)
+                } ?: throw Exception("No se pudo obtener información del usuario")
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Error en el inicio de sesión con Google")
             }
@@ -62,8 +63,10 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 _authState.value = AuthState.Loading
-                auth.createUserWithEmailAndPassword(email, password).await()
-                checkAuthState()
+                val result = auth.createUserWithEmailAndPassword(email, password).await()
+                result.user?.let { user ->
+                    _authState.value = AuthState.Authenticated(user)
+                } ?: throw Exception("No se pudo obtener información del usuario")
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Error al registrar")
             }

@@ -2,7 +2,6 @@ package com.example.lumviva.ui.Reportes.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,18 +18,37 @@ import com.example.lumviva.ui.auth.AuthViewModel
 @Composable
 fun ReportesScreen(
     navController: NavController,
-    authViewModel: AuthViewModel = viewModel(),
-    reportesViewModel: ReportesViewModel = viewModel { ReportesViewModel(authViewModel) }
+    authViewModel: AuthViewModel,
+    reportesViewModel: ReportesViewModel = viewModel(
+        factory = ReportesViewModel.Factory(authViewModel)
+    )
 ) {
-    val userName by reportesViewModel.userName.collectAsState(initial = "")
-    val isAuthenticated by reportesViewModel.isAuthenticated.collectAsState(initial = false)
-    var showAuthDialog by remember { mutableStateOf(false) }
-    var currentAction by remember { mutableStateOf<() -> Unit>({}) }
+    val userName by reportesViewModel.userName.collectAsState()
+    val isAuthenticated by reportesViewModel.isAuthenticated.collectAsState()
+    var showLoginDialog by remember { mutableStateOf(false) }
 
-    // Colores personalizados
-    val guindaColor = Color(0xFF9B1B30)
-    val azulColor = Color(0xFF0D7CF2)
-    val grisClaroColor = Color(0xFFF0F2F5)
+    if (showLoginDialog) {
+        AlertDialog(
+            onDismissRequest = { showLoginDialog = false },
+            title = { Text("Iniciar sesión requerido") },
+            text = { Text("Para ver tus reportes necesitas iniciar sesión.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLoginDialog = false
+                        navController.navigate("login")
+                    }
+                ) {
+                    Text("Iniciar sesión")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLoginDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -43,23 +61,35 @@ fun ReportesScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Encabezado
-            TopAppBar(title = {
-                Text(
-                    text = "Bienvenido, $userName",
-                    modifier = Modifier
-                        .fillMaxWidth() // Para ocupar el ancho completo
-                        .wrapContentWidth(Alignment.CenterHorizontally)
-                        .padding(top=32.dp), // Centrar horizontalmente
-                        fontWeight = FontWeight.Bold // Opción para hacer el texto más destacado
+            TopAppBar(
+                title = {
+                    Text(
+                        text = if (isAuthenticated) "Bienvenido, $userName" else "Bienvenido",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentWidth(Alignment.CenterHorizontally)
+                            .padding(top = 32.dp),
+                        fontWeight = FontWeight.Bold
                     )
-            })
+                },
+                actions = {
+                    if (isAuthenticated) {
+                        TextButton(onClick = { reportesViewModel.logout() }) {
+                            Text("Cerrar sesión")
+                        }
+                    } else {
+                        TextButton(onClick = { navController.navigate("login") }) {
+                            Text("Iniciar sesión")
+                        }
+                    }
+                }
+            )
 
             Spacer(modifier = Modifier.height(64.dp))
 
             Text(
                 text = "Haz un reporte",
-                style = MaterialTheme.typography.titleLarge.copy( // Usar titleLarge en vez de h5
+                style = MaterialTheme.typography.titleLarge.copy(
                     color = Color(0xFF111418),
                     fontWeight = FontWeight.Bold
                 ),
@@ -69,8 +99,7 @@ fun ReportesScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Si has presenciado o experimentado un problema urbano, como alcantarillado obstruido, mal estado de las calles o" +
-                        " situaciones de riesgo, puedes informarnos sobre lo ocurrido.",
+                text = "Si has presenciado o experimentado un problema urbano, como alcantarillado obstruido, mal estado de las calles o situaciones de riesgo, puedes informarnos sobre lo ocurrido.",
                 style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF111418)),
                 textAlign = TextAlign.Center
             )
@@ -78,7 +107,7 @@ fun ReportesScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = { /* Acción para hacer el reporte */ },
+                onClick = { navController.navigate("crear_reporte") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
@@ -96,7 +125,7 @@ fun ReportesScreen(
 
             Text(
                 text = "Mis Reportes",
-                style = MaterialTheme.typography.titleLarge.copy( // Usar titleLarge
+                style = MaterialTheme.typography.titleLarge.copy(
                     color = Color(0xFF111418),
                     fontWeight = FontWeight.Bold
                 ),
@@ -114,7 +143,13 @@ fun ReportesScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = { /* Acción para ver mis reportes */ },
+                onClick = {
+                    if (isAuthenticated) {
+                        navController.navigate("mis_reportes")
+                    } else {
+                        showLoginDialog = true
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)

@@ -22,19 +22,23 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.lumviva.ui.auth.AuthState
 import com.example.lumviva.ui.auth.AuthViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 
-
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = viewModel()) {
+fun LoginScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    loginViewModel: LoginViewModel = viewModel(
+        factory = LoginViewModel.Factory(authViewModel)
+    )
+) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    val authState by authViewModel.authState.collectAsState()
+    val loginState by loginViewModel.loginState.collectAsState()
     val context = LocalContext.current
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -54,20 +58,20 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
                 val account = task.getResult(ApiException::class.java)
-                account?.let { authViewModel.loginWithGoogle(it) }
+                account?.let { loginViewModel.loginWithGoogle(it) }
             } catch (e: ApiException) {
                 errorMessage = "Error en el inicio de sesión con Google: ${e.message}"
             }
         }
     }
 
-    LaunchedEffect(authState) {
-        when (authState) {
-            is AuthState.Authenticated -> navController.navigate("reportes") {
+    LaunchedEffect(loginState) {
+        when (loginState) {
+            is LoginState.Success -> navController.navigate("reportes") {
                 popUpTo("login") { inclusive = true }
             }
-            is AuthState.Error -> {
-                errorMessage = (authState as AuthState.Error).message
+            is LoginState.Error -> {
+                errorMessage = (loginState as LoginState.Error).message
             }
             else -> {}
         }
@@ -120,7 +124,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
                 keyboardActions = KeyboardActions(
                     onDone = {
                         keyboardController?.hide()
-                        authViewModel.login(email, password)
+                        loginViewModel.login(email, password)
                     }
                 ),
                 singleLine = true,
@@ -132,7 +136,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { authViewModel.login(email, password) },
+                onClick = { loginViewModel.login(email, password) },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Iniciar sesión")
@@ -172,7 +176,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
                 )
             }
 
-            if (authState is AuthState.Loading) {
+            if (loginState is LoginState.Loading) {
                 CircularProgressIndicator(modifier = Modifier.padding(top = 16.dp))
             }
         }

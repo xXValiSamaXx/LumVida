@@ -26,7 +26,6 @@ import com.example.lumviva.ui.theme.LumVivaTheme
 import com.google.firebase.FirebaseApp
 
 class MainActivity : ComponentActivity() {
-
     private val authViewModel: AuthViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,34 +53,48 @@ fun LumVivaApp(authViewModel: AuthViewModel) {
     LaunchedEffect(authState) {
         when (authState) {
             is AuthState.Authenticated -> {
-                // Si el usuario está autenticado, navega a la pantalla de reportes
-                navController.navigate("reportes") {
-                    popUpTo("login") { inclusive = true } // Elimina la pantalla de login del stack de navegación
+                // Si está en login o crear_cuenta, ir a reportes
+                val currentRoute = navController.currentDestination?.route
+                if (currentRoute in listOf("login", "crear_cuenta", "inicio")) {
+                    navController.navigate("reportes") {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             }
-            else -> {
-                // Si no está autenticado, navega a la pantalla de inicio o login
-                navController.navigate("inicio") {
-                }
-            }
+            else -> {} // No hacer nada para otros estados
         }
     }
 
-    NavHost(navController = navController, startDestination = if (authState is AuthState.Authenticated) "reportes" else "login") {
+    NavHost(
+        navController = navController,
+        startDestination = if (authState is AuthState.Authenticated) "reportes" else "inicio"
+    ) {
         composable("inicio") {
             InicioScreen(navController = navController)
         }
         composable("reportes") {
-            ReportesScreen(navController = navController)
+            ReportesScreen(
+                navController = navController,
+                authViewModel = authViewModel
+            )
         }
         composable("login") {
-            LoginScreen(navController)
+            LoginScreen(
+                navController = navController,
+                authViewModel = authViewModel
+            )
         }
         composable("recuperar_contrasena") {
-            RecuperarContraseñaScreen(navController)
+            RecuperarContraseñaScreen(
+                navController = navController,
+                authViewModel = authViewModel
+            )
         }
         composable("crear_cuenta") {
-            CrearCuentaScreen(navController)
+            CrearCuentaScreen(
+                navController = navController,
+                authViewModel = authViewModel
+            )
         }
     }
 }

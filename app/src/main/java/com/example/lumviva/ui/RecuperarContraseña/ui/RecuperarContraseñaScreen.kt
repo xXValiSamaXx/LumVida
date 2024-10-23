@@ -13,108 +13,119 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lumviva.ui.RecuperarContrasena.ui.RecuperarContraseñaViewModel
 import com.example.lumviva.ui.RecuperarContrasena.ui.RecuperarContraseñaState
-import androidx.compose.runtime.livedata.observeAsState
+import com.example.lumviva.ui.auth.AuthViewModel
 import kotlinx.coroutines.launch
 
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecuperarContraseñaScreen(
     navController: NavController,
-    viewModel: RecuperarContraseñaViewModel = viewModel()
+    authViewModel: AuthViewModel,
+    viewModel: RecuperarContraseñaViewModel = viewModel(
+        factory = RecuperarContraseñaViewModel.Factory(authViewModel)
+    )
 ) {
     var email by remember { mutableStateOf("") }
-    val state = viewModel.emailSentStatus.observeAsState(RecuperarContraseñaState.Initial)
-
-    // Para mostrar el Snackbar
+    val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
+    // Efecto para mostrar el diálogo cuando el estado sea Success
+    LaunchedEffect(state) {
+        if (state is RecuperarContraseñaState.Success) {
+            showSuccessDialog = true
+        }
+    }
+
+    // Diálogo de éxito
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showSuccessDialog = false
+                navController.navigateUp()
+            },
+            title = { Text("Correo enviado") },
+            text = {
+                Text(
+                    "Se han enviado las instrucciones de recuperación a tu correo electrónico. " +
+                            "Por favor, revisa tu bandeja de entrada."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSuccessDialog = false
+                        navController.navigateUp()
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            }
+        )
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Recuperar contraseña") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.Default.ArrowBack, "Regresar")
+                    }
+                }
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(padding)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Barra superior con botón de regresar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { navController.navigateUp() }) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Regresar"
-                    )
-                }
-                Text(
-                    "Recuperar contraseña",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
             Text(
-                "Si has olvidado tu contraseña, ingresa tu correo electrónico para que podamos enviarte instrucciones sobre cómo recuperarla.",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center
+                text = "Ingresa tu correo electrónico y te enviaremos las instrucciones para restablecer tu contraseña.",
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.bodyLarge
             )
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { email = it.trim() },
                 label = { Text("Correo electrónico") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = state !is RecuperarContraseñaState.Loading,
+                singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
             Button(
-                onClick = {
-                    if (email.isNotEmpty()) {
-                        viewModel.recuperarContraseña(email)
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
+                onClick = { viewModel.recuperarContraseña(email) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = email.isNotEmpty() && state !is RecuperarContraseñaState.Loading
             ) {
-                Text("Recuperar contraseña")
+                if (state is RecuperarContraseñaState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Enviar instrucciones")
+                }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Observa el estado y muestra feedback en la UI
-            when (state.value) {
-                is RecuperarContraseñaState.Loading -> {
-                    CircularProgressIndicator()
-                }
-                is RecuperarContraseñaState.Success -> {
-                    // Mostrar el Snackbar cuando se envíe el correo correctamente
-                    LaunchedEffect(Unit) {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Revisa tu correo para restablecer tu contraseña.")
-                        }
+            // Manejar errores
+            LaunchedEffect(state) {
+                if (state is RecuperarContraseñaState.Error) {
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = (state as RecuperarContraseñaState.Error).message
+                        )
                     }
                 }
-                is RecuperarContraseñaState.Error -> {
-                    val errorMessage = (state.value as RecuperarContraseñaState.Error).message
-                    LaunchedEffect(Unit) {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Error: $errorMessage")
-                        }
-                    }
-                }
-                else -> {}
             }
         }
-
-        // Host del Snackbar
-        SnackbarHost(hostState = snackbarHostState)
     }
 }

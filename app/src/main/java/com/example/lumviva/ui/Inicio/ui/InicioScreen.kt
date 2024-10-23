@@ -39,10 +39,14 @@ fun InicioScreen(navController: NavController) {
         )
 
         Button(
-            onClick = { navController.navigate("reportes") },
+            onClick = {
+                navController.navigate("reportes") {
+                    popUpTo("inicio") { inclusive = true }
+                }
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Hacer reportes")
+            Text("Continuar")
         }
     }
 }

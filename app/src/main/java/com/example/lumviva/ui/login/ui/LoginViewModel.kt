@@ -23,7 +23,7 @@ class LoginViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
                     is AuthState.Authenticated -> LoginState.Success
                     is AuthState.Unauthenticated -> LoginState.Initial
                     is AuthState.Error -> LoginState.Error(authState.message)
-                    AuthState.ResetPasswordSent -> TODO()
+                    is AuthState.ResetPasswordSent -> LoginState.Initial // Manejamos explícitamente este estado
                 }
             }
         }
