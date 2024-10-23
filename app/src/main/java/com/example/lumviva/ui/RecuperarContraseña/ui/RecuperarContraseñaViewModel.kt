@@ -1,17 +1,29 @@
 package com.example.lumviva.ui.RecuperarContrasena.ui
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import com.google.firebase.auth.FirebaseAuth
 
 class RecuperarContraseñaViewModel : ViewModel() {
-    private val _state = MutableStateFlow<RecuperarContraseñaState>(RecuperarContraseñaState.Initial)
-    val state: StateFlow<RecuperarContraseñaState> = _state
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+
+    private val _emailSentStatus = MutableLiveData<RecuperarContraseñaState>()
+    val emailSentStatus: LiveData<RecuperarContraseñaState> = _emailSentStatus
 
     fun recuperarContraseña(email: String) {
-        // Aquí iría la lógica para enviar el correo de recuperación
-        // Por ahora, solo actualizamos el estado
-        _state.value = RecuperarContraseñaState.Success
+        _emailSentStatus.value = RecuperarContraseñaState.Loading
+
+        // Usamos Firebase para enviar el correo de recuperación de contraseña
+        auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    _emailSentStatus.value = RecuperarContraseñaState.Success
+                } else {
+                    val errorMessage = task.exception?.message ?: "Error desconocido"
+                    _emailSentStatus.value = RecuperarContraseñaState.Error(errorMessage)
+                }
+            }
     }
 }
 
