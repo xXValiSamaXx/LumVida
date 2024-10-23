@@ -12,6 +12,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lumviva.ui.RecuperarContrasena.ui.RecuperarContraseñaViewModel
+import com.example.lumviva.ui.RecuperarContrasena.ui.RecuperarContraseñaState
+import androidx.compose.runtime.livedata.observeAsState
+import kotlinx.coroutines.launch
+
 
 @Composable
 fun RecuperarContraseñaScreen(
@@ -19,6 +23,11 @@ fun RecuperarContraseñaScreen(
     viewModel: RecuperarContraseñaViewModel = viewModel()
 ) {
     var email by remember { mutableStateOf("") }
+    val state = viewModel.emailSentStatus.observeAsState(RecuperarContraseñaState.Initial)
+
+    // Para mostrar el Snackbar
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -68,11 +77,44 @@ fun RecuperarContraseñaScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { viewModel.recuperarContraseña(email) },
+                onClick = {
+                    if (email.isNotEmpty()) {
+                        viewModel.recuperarContraseña(email)
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Recuperar contraseña")
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Observa el estado y muestra feedback en la UI
+            when (state.value) {
+                is RecuperarContraseñaState.Loading -> {
+                    CircularProgressIndicator()
+                }
+                is RecuperarContraseñaState.Success -> {
+                    // Mostrar el Snackbar cuando se envíe el correo correctamente
+                    LaunchedEffect(Unit) {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Revisa tu correo para restablecer tu contraseña.")
+                        }
+                    }
+                }
+                is RecuperarContraseñaState.Error -> {
+                    val errorMessage = (state.value as RecuperarContraseñaState.Error).message
+                    LaunchedEffect(Unit) {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Error: $errorMessage")
+                        }
+                    }
+                }
+                else -> {}
+            }
         }
+
+        // Host del Snackbar
+        SnackbarHost(hostState = snackbarHostState)
     }
 }

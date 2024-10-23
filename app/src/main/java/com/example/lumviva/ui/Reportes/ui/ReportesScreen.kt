@@ -1,18 +1,21 @@
 package com.example.lumviva.ui.Reportes.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lumviva.ui.auth.AuthViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportesScreen(
     navController: NavController,
@@ -24,6 +27,11 @@ fun ReportesScreen(
     var showAuthDialog by remember { mutableStateOf(false) }
     var currentAction by remember { mutableStateOf<() -> Unit>({}) }
 
+    // Colores personalizados
+    val guindaColor = Color(0xFF9B1B30)
+    val azulColor = Color(0xFF0D7CF2)
+    val grisClaroColor = Color(0xFFF0F2F5)
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -31,143 +39,94 @@ fun ReportesScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-        ) {
-            Spacer(modifier = Modifier.windowInsetsTopHeight(WindowInsets.safeDrawing))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Hola, $userName",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Selecciona la opción deseada",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    OptionButton(
-                        text = "Hacer un reporte",
-                        onClick = { navController.navigate("hacer_reporte") }
-                    )
-                    OptionButton(
-                        text = "Mis reportes",
-                        onClick = {
-                            if (isAuthenticated) {
-                                navController.navigate("mis_reportes")
-                            } else {
-                                showAuthDialog = true
-                                currentAction = { navController.navigate("mis_reportes") }
-                            }
-                        }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = {
-                        if (isAuthenticated) {
-                            navController.navigate("mi_perfil")
-                        } else {
-                            showAuthDialog = true
-                            currentAction = { navController.navigate("mi_perfil") }
-                        }
-                    },
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Mi perfil")
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                if (isAuthenticated) {
-                    Button(
-                        onClick = {
-                            reportesViewModel.logout()
-                            navController.navigate("login") {
-                                popUpTo("reportes") { inclusive = true }
-                            }
-                        },
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Cerrar sesión")
-                    }
-                }
-            }
-        }
-    }
-
-    if (showAuthDialog) {
-        AuthDialog(
-            onDismiss = { showAuthDialog = false },
-            onLogin = {
-                showAuthDialog = false
-                navController.navigate("login")
-            },
-            onLater = { showAuthDialog = false }
-        )
-    }
-}
-
-@Composable
-fun AuthDialog(onDismiss: () -> Unit, onLogin: () -> Unit, onLater: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
+                .background(Color.White)
                 .padding(16.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    "Para usar estas características, debes iniciar sesión.",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onLogin) {
-                    Text("Quiero iniciar sesión")
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                TextButton(onClick = onLater) {
-                    Text("En otro momento")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun OptionButton(text: String, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier.size(150.dp),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Aquí iría el ícono
-            Box(modifier = Modifier.size(50.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text)
+            // Encabezado
+            TopAppBar(title = {
+                Text(
+                    text = "Bienvenido, $userName",
+                    modifier = Modifier
+                        .fillMaxWidth() // Para ocupar el ancho completo
+                        .wrapContentWidth(Alignment.CenterHorizontally)
+                        .padding(top=32.dp), // Centrar horizontalmente
+                        fontWeight = FontWeight.Bold // Opción para hacer el texto más destacado
+                    )
+            })
+
+            Spacer(modifier = Modifier.height(64.dp))
+
+            Text(
+                text = "Haz un reporte",
+                style = MaterialTheme.typography.titleLarge.copy( // Usar titleLarge en vez de h5
+                    color = Color(0xFF111418),
+                    fontWeight = FontWeight.Bold
+                ),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = "Si has presenciado o experimentado un problema urbano, como alcantarillado obstruido, mal estado de las calles o" +
+                        " situaciones de riesgo, puedes informarnos sobre lo ocurrido.",
+                style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF111418)),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = { /* Acción para hacer el reporte */ },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .padding(horizontal = 8.dp),
+                colors = ButtonDefaults.buttonColors(Color(0xFFFC3939))
+            ) {
+                Text(
+                    text = "Hacer Reporte",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(52.dp))
+
+            Text(
+                text = "Mis Reportes",
+                style = MaterialTheme.typography.titleLarge.copy( // Usar titleLarge
+                    color = Color(0xFF111418),
+                    fontWeight = FontWeight.Bold
+                ),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = "Puedes ver y actualizar tus reportes en cualquier momento.",
+                style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF111418)),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = { /* Acción para ver mis reportes */ },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .padding(horizontal = 8.dp),
+                colors = ButtonDefaults.buttonColors(Color(0xFFFC3939))
+            ) {
+                Text(
+                    text = "Ver mis reportes",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
