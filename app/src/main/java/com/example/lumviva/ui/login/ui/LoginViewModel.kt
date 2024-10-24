@@ -23,18 +23,34 @@ class LoginViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
                     is AuthState.Authenticated -> LoginState.Success
                     is AuthState.Unauthenticated -> LoginState.Initial
                     is AuthState.Error -> LoginState.Error(authState.message)
-                    is AuthState.ResetPasswordSent -> LoginState.Initial // Manejamos explícitamente este estado
+                    is AuthState.ResetPasswordSent -> LoginState.Initial
                 }
             }
         }
     }
 
     fun login(email: String, password: String) {
+        if (!isValidEmail(email)) {
+            _loginState.value = LoginState.Error("El correo electrónico no es válido")
+            return
+        }
+        if (password.isBlank()) {
+            _loginState.value = LoginState.Error("La contraseña no puede estar vacía")
+            return
+        }
         authViewModel.login(email, password)
     }
 
     fun loginWithGoogle(account: GoogleSignInAccount) {
+        if (account.email == null) {
+            _loginState.value = LoginState.Error("No se pudo obtener el correo electrónico de Google")
+            return
+        }
         authViewModel.loginWithGoogle(account)
+    }
+
+    private fun isValidEmail(email: String): Boolean {
+        return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
     }
 
     class Factory(private val authViewModel: AuthViewModel) : ViewModelProvider.Factory {

@@ -28,9 +28,23 @@ class RecuperarContraseñaViewModel(private val authViewModel: AuthViewModel) : 
 
     fun recuperarContraseña(email: String) {
         viewModelScope.launch {
-            _state.value = RecuperarContraseñaState.Loading
-            authViewModel.resetPassword(email)
+            when {
+                email.isBlank() -> {
+                    _state.value = RecuperarContraseñaState.Error("El correo electrónico no puede estar vacío")
+                }
+                !isValidEmail(email) -> {
+                    _state.value = RecuperarContraseñaState.Error("El correo electrónico no es válido")
+                }
+                else -> {
+                    _state.value = RecuperarContraseñaState.Loading
+                    authViewModel.resetPassword(email)
+                }
+            }
         }
+    }
+
+    private fun isValidEmail(email: String): Boolean {
+        return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
     }
 
     class Factory(private val authViewModel: AuthViewModel) : ViewModelProvider.Factory {

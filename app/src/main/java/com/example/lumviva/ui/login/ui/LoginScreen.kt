@@ -25,6 +25,7 @@ import androidx.navigation.NavController
 import com.example.lumviva.ui.auth.AuthViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.google.android.gms.common.api.ApiException
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -58,9 +59,17 @@ fun LoginScreen(
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
                 val account = task.getResult(ApiException::class.java)
-                account?.let { loginViewModel.loginWithGoogle(it) }
+                if (account?.email == null) {
+                    errorMessage = "No se pudo obtener el correo electrónico de Google"
+                } else {
+                    account.let { loginViewModel.loginWithGoogle(it) }
+                }
             } catch (e: ApiException) {
-                errorMessage = "Error en el inicio de sesión con Google: ${e.message}"
+                errorMessage = when (e.statusCode) {
+                    GoogleSignInStatusCodes.SIGN_IN_CANCELLED -> "Inicio de sesión cancelado"
+                    GoogleSignInStatusCodes.NETWORK_ERROR -> "Error de red. Verifica tu conexión"
+                    else -> "Error en el inicio de sesión con Google: ${e.message}"
+                }
             }
         }
     }

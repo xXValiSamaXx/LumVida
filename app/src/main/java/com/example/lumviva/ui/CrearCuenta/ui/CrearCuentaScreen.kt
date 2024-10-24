@@ -28,6 +28,7 @@ fun CrearCuentaScreen(
     authViewModel: AuthViewModel = viewModel(),
     crearCuentaViewModel: CrearCuentaViewModel = viewModel { CrearCuentaViewModel(authViewModel) }
 ) {
+    var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmarPassword by remember { mutableStateOf("") }
@@ -35,6 +36,7 @@ fun CrearCuentaScreen(
     val authState by authViewModel.authState.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
 
+    val emailFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
     val confirmarPasswordFocusRequester = remember { FocusRequester() }
 
@@ -42,9 +44,6 @@ fun CrearCuentaScreen(
         when (authState) {
             is AuthState.Authenticated -> navController.navigate("reportes") {
                 popUpTo("login") { inclusive = true }
-            }
-            is AuthState.Error -> {
-                // Mostrar error de autenticación
             }
             else -> {}
         }
@@ -68,6 +67,24 @@ fun CrearCuentaScreen(
                 modifier = Modifier.padding(bottom = 32.dp)
             )
 
+            // Campo de nombre
+            OutlinedTextField(
+                value = nombre,
+                onValueChange = { nombre = it },
+                label = { Text("Nombre") },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { emailFocusRequester.requestFocus() }
+                ),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            )
+
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it.filter { c -> c != ' ' } },
@@ -83,6 +100,7 @@ fun CrearCuentaScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp)
+                    .focusRequester(emailFocusRequester)
             )
 
             OutlinedTextField(
@@ -116,19 +134,20 @@ fun CrearCuentaScreen(
                 keyboardActions = KeyboardActions(
                     onDone = {
                         keyboardController?.hide()
-                        crearCuentaViewModel.crearCuenta(email, password, confirmarPassword)
+                        crearCuentaViewModel.crearCuenta(email, password, confirmarPassword, nombre)
                     }
                 ),
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(bottom = 16.dp)
                     .focusRequester(confirmarPasswordFocusRequester)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
             Button(
-                onClick = { crearCuentaViewModel.crearCuenta(email, password, confirmarPassword) },
+                onClick = {
+                    crearCuentaViewModel.crearCuenta(email, password, confirmarPassword, nombre)
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Crear cuenta")
