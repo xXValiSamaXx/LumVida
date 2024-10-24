@@ -3,8 +3,8 @@ package com.example.lumviva.ui.login.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.lumviva.ui.auth.AuthState
-import com.example.lumviva.ui.auth.AuthViewModel
+import com.example.lumviva.ui.Auth.ui.AuthState
+import com.example.lumviva.ui.Auth.ui.AuthViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

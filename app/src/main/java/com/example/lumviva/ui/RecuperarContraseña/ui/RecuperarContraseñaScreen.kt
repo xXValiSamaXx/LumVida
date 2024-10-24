@@ -13,7 +13,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lumviva.ui.RecuperarContrasena.ui.RecuperarContraseñaViewModel
 import com.example.lumviva.ui.RecuperarContrasena.ui.RecuperarContraseñaState
-import com.example.lumviva.ui.auth.AuthViewModel
+import com.example.lumviva.ui.Auth.ui.AuthViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)

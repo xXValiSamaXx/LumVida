@@ -3,16 +3,19 @@ package com.example.lumviva.ui.Reportes.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.lumviva.ui.auth.AuthState
-import com.example.lumviva.ui.auth.AuthViewModel
+import com.example.lumviva.ui.Auth.ui.AuthState
+import com.example.lumviva.ui.Auth.ui.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class ReportesViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
 
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
     private val _userName = MutableStateFlow("")
     val userName: StateFlow<String> = _userName
 
@@ -29,7 +32,7 @@ class ReportesViewModel(private val authViewModel: AuthViewModel) : ViewModel() 
                 when (state) {
                     is AuthState.Authenticated -> {
                         _isAuthenticated.value = true
-                        updateUserName(state.user)
+                        getUserNameFromFirestore(state.user.uid)
                     }
                     else -> {
                         _isAuthenticated.value = false
@@ -43,18 +46,43 @@ class ReportesViewModel(private val authViewModel: AuthViewModel) : ViewModel() 
     private fun checkCurrentUser() {
         auth.currentUser?.let { user ->
             _isAuthenticated.value = true
-            updateUserName(user)
+            viewModelScope.launch {
+                getUserNameFromFirestore(user.uid)
+            }
         } ?: run {
             _isAuthenticated.value = false
             _userName.value = ""
         }
     }
 
-    private fun updateUserName(user: com.google.firebase.auth.FirebaseUser) {
-        _userName.value = when {
-            !user.displayName.isNullOrEmpty() -> user.displayName!!
-            !user.email.isNullOrEmpty() -> user.email!!.substringBefore("@")
-            else -> "Usuario"
+    private suspend fun getUserNameFromFirestore(uid: String) {
+        try {
+            val userDoc = db.collection("usuarios").document(uid).get().await()
+            if (userDoc.exists()) {
+                val nombre = userDoc.getString("nombre")
+                if (!nombre.isNullOrEmpty()) {
+                    _userName.value = nombre
+                    return
+                }
+            }
+
+            // Fallback a displayName o email si no se encuentra el nombre en Firestore
+            auth.currentUser?.let { user ->
+                _userName.value = when {
+                    !user.displayName.isNullOrEmpty() -> user.displayName!!
+                    !user.email.isNullOrEmpty() -> user.email!!.substringBefore("@")
+                    else -> "Usuario"
+                }
+            }
+        } catch (e: Exception) {
+            // En caso de error, usar el fallback
+            auth.currentUser?.let { user ->
+                _userName.value = when {
+                    !user.displayName.isNullOrEmpty() -> user.displayName!!
+                    !user.email.isNullOrEmpty() -> user.email!!.substringBefore("@")
+                    else -> "Usuario"
+                }
+            }
         }
     }
 

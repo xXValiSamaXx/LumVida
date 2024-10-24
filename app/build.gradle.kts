@@ -76,6 +76,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
     implementation("com.google.firebase:firebase-analytics")
+    implementation ("androidx.compose.material:material-icons-extended-android:1.6.1")
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.crashlytics.buildtools)
     implementation(libs.androidx.runtime.livedata)

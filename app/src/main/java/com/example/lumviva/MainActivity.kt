@@ -18,8 +18,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.lumviva.ui.Inicio.ui.InicioScreen
 import com.example.lumviva.ui.RecuperarContraseña.ui.RecuperarContraseñaScreen
 import com.example.lumviva.ui.Reportes.ui.ReportesScreen
-import com.example.lumviva.ui.auth.AuthViewModel
-import com.example.lumviva.ui.auth.AuthState
+import com.example.lumviva.ui.Auth.ui.AuthViewModel
+import com.example.lumviva.ui.Auth.ui.AuthState
 import com.example.lumviva.ui.crearcuenta.CrearCuentaScreen
 import com.example.lumviva.ui.login.ui.LoginScreen
 import com.example.lumviva.ui.theme.LumVivaTheme

@@ -1,7 +1,8 @@
-package com.example.lumviva.ui.auth
+package com.example.lumviva.ui.Auth.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.lumviva.ui.Auth.data.AuthProvider
 import com.example.lumviva.ui.Auth.data.Usuario
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseAuth
@@ -44,6 +45,35 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+// En AuthViewModel.kt
+
+    fun registerWithProfile(email: String, password: String, nombre: String) {
+        viewModelScope.launch {
+            try {
+                _authState.value = AuthState.Loading
+                val result = auth.createUserWithEmailAndPassword(email, password).await()
+
+                result.user?.let { user ->
+                    val usuario = Usuario(
+                        uid = user.uid,
+                        email = email,
+                        nombre = nombre,
+                        provider = AuthProvider.EMAIL
+                    )
+
+                    db.collection("usuarios")
+                        .document(user.uid)
+                        .set(usuario)
+                        .await()
+
+                    _authState.value = AuthState.Authenticated(user)
+                } ?: throw Exception("No se pudo obtener información del usuario")
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "Error al registrar")
+            }
+        }
+    }
+
     fun loginWithGoogle(account: GoogleSignInAccount?) {
         viewModelScope.launch {
             try {
@@ -54,11 +84,11 @@ class AuthViewModel : ViewModel() {
                 val credential = GoogleAuthProvider.getCredential(account.idToken, null)
                 val result = auth.signInWithCredential(credential).await()
                 result.user?.let { user ->
-                    // Crear o actualizar el usuario en Firestore para Google Sign-In
                     val usuario = Usuario(
                         uid = user.uid,
                         email = user.email ?: "",
                         nombre = account.displayName ?: "",
+                        provider = AuthProvider.GOOGLE
                     )
                     db.collection("usuarios")
                         .document(user.uid)
@@ -67,36 +97,8 @@ class AuthViewModel : ViewModel() {
                     _authState.value = AuthState.Authenticated(user)
                 } ?: throw Exception("No se pudo obtener información del usuario")
             } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Error en el inicio de sesión con Google")
-            }
-        }
-    }
-
-    fun registerWithProfile(email: String, password: String, nombre: String) {
-        viewModelScope.launch {
-            try {
-                _authState.value = AuthState.Loading
-                // Crear usuario en Authentication
-                val result = auth.createUserWithEmailAndPassword(email, password).await()
-
-                result.user?.let { user ->
-                    // Crear documento del usuario en Firestore
-                    val usuario = Usuario(
-                        uid = user.uid,
-                        email = email,
-                        nombre = nombre
-                    )
-
-                    // Guardar en la colección "usuarios"
-                    db.collection("usuarios")
-                        .document(user.uid)
-                        .set(usuario)
-                        .await()
-
-                    _authState.value = AuthState.Authenticated(user)
-                } ?: throw Exception("No se pudo obtener información del usuario")
-            } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Error al registrar")
+                _authState.value =
+                    AuthState.Error(e.message ?: "Error en el inicio de sesión con Google")
             }
         }
     }
@@ -113,7 +115,8 @@ class AuthViewModel : ViewModel() {
                 auth.sendPasswordResetEmail(email).await()
                 _authState.value = AuthState.ResetPasswordSent
             } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Error al enviar el correo de restablecimiento")
+                _authState.value =
+                    AuthState.Error(e.message ?: "Error al enviar el correo de restablecimiento")
             }
         }
     }

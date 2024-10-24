@@ -12,7 +12,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.lumviva.ui.auth.AuthViewModel
+import com.example.lumviva.ui.Auth.ui.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +31,7 @@ fun ReportesScreen(
         AlertDialog(
             onDismissRequest = { showLoginDialog = false },
             title = { Text("Iniciar sesión requerido") },
-            text = { Text("Para ver tus reportes necesitas iniciar sesión.") },
+            text = { Text("Para ver tus reportes necesitas iniciar sesió.") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -64,7 +64,7 @@ fun ReportesScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (isAuthenticated) "Bienvenido, $userName" else "Bienvenido",
+                        text = if (isAuthenticated) "Bienvenido, $userName" else "Bienvenido Invitado",
                         modifier = Modifier
                             .fillMaxWidth()
                             .wrapContentWidth(Alignment.CenterHorizontally)
