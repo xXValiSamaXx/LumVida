@@ -52,7 +52,25 @@ android {
 }
 
 dependencies {
+    //Depedencias camara
+    implementation ("com.google.accompanist:accompanist-permissions:0.31.1-alpha")
+    implementation ("io.coil-kt:coil-compose:2.4.0")
+    implementation ("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 
+    //Dependencias OpenStreetMap
+    implementation ("org.osmdroid:osmdroid-android:6.1.18")
+    implementation ("org.osmdroid:osmdroid-wms:6.1.16")
+    implementation ("org.osmdroid:osmdroid-mapsforge:6.1.16")
+
+    //Dependencias Firebase con fireStore y Storage
+    implementation ("com.google.firebase:firebase-firestore-ktx:24.9.1")
+    implementation ("com.google.firebase:firebase-storage-ktx:20.3.0")
+    implementation ("com.google.firebase:firebase-bom:32.6.0")
+    implementation ("com.google.firebase:firebase-firestore-ktx")
+    implementation ("com.google.firebase:firebase-storage-ktx")
+
+    //Otras
+    implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

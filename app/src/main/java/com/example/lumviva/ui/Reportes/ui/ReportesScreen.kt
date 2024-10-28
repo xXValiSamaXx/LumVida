@@ -107,7 +107,7 @@ fun ReportesScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = { navController.navigate("crear_reporte") },
+                onClick = { navController.navigate("categorias") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
