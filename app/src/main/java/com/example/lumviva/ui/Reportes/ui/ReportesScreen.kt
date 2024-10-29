@@ -198,22 +198,6 @@ fun ReportesScreen(
                     )
                 }
             }
-
-            // Botón de cerrar sesión en la parte inferior
-            if (isAuthenticated) {
-                TextButton(
-                    onClick = { reportesViewModel.logout() },
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = if (isDarkTheme) TextPrimary else PrimaryDark
-                    )
-                ) {
-                    Text(
-                        "Cerrar sesión",
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            }
         }
     }
 }

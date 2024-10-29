@@ -29,6 +29,8 @@ import com.example.lumviva.ui.Categorias.ui.CategoriasScreen
 import com.example.lumviva.ui.Categorias.ui.CategoriasViewModel
 import com.example.lumviva.ui.CrearReporte.ui.CrearReporteScreen
 import com.example.lumviva.ui.CrearReporte.ui.CrearReporteViewModel
+import com.example.lumviva.ui.PerfilUsuario.PerfilUsuarioScreen
+import com.example.lumviva.ui.PerfilUsuario.PerfilUsuarioViewModel
 import com.example.lumviva.ui.crearcuenta.CrearCuentaScreen
 import com.example.lumviva.ui.login.ui.LoginScreen
 import com.example.lumviva.ui.theme.LumVivaTheme
@@ -87,6 +89,15 @@ fun LumVivaApp(authViewModel: AuthViewModel) {
             ReportesScreen(
                 navController = navController,
                 authViewModel = authViewModel
+            )
+        }
+        composable("usuario") {
+            val perfilUsuarioViewModel: PerfilUsuarioViewModel = viewModel(
+                factory = PerfilUsuarioViewModel.Factory(authViewModel)
+            )
+            PerfilUsuarioScreen(
+                navController = navController,
+                viewModel = perfilUsuarioViewModel
             )
         }
         composable("login") {
