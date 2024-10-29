@@ -54,7 +54,7 @@ android {
 dependencies {
     //Depedencias camara
     implementation ("com.google.accompanist:accompanist-permissions:0.31.1-alpha")
-    implementation ("io.coil-kt:coil-compose:2.4.0")
+    implementation("io.coil-kt:coil-compose:2.5.0")
     implementation ("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 
     //Dependencias OpenStreetMap
@@ -85,6 +85,7 @@ dependencies {
     implementation(libs.androidx.constraintlayout.compose)
     implementation(libs.androidx.datastore.core.android)
     implementation(libs.androidx.datastore.preferences.core.jvm)
+
     // Google Sign-In
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     // Coroutines
@@ -95,10 +96,12 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation ("androidx.compose.material:material-icons-extended-android:1.6.1")
+
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.crashlytics.buildtools)
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.firebase.firestore.ktx)
+    implementation(libs.volley)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

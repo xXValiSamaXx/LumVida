@@ -3,6 +3,7 @@ package com.example.lumviva.ui.login.ui
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,19 +28,25 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lumviva.ui.Auth.ui.AuthViewModel
+import com.example.lumviva.ui.theme.BackgroundContainer
+import com.example.lumviva.ui.theme.Primary
+import com.example.lumviva.ui.theme.PrimaryDark
+import com.example.lumviva.ui.theme.Secondary
+import com.example.lumviva.ui.theme.TextPrimary
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.google.android.gms.common.api.ApiException
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     navController: NavController,
     authViewModel: AuthViewModel,
     loginViewModel: LoginViewModel = viewModel(
         factory = LoginViewModel.Factory(authViewModel)
-    )
+    ),
+    isDarkTheme: Boolean = isSystemInDarkTheme()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -48,7 +55,6 @@ fun LoginScreen(
     val context = LocalContext.current
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val keyboardController = LocalSoftwareKeyboardController.current
-
     val passwordFocusRequester = remember { FocusRequester() }
 
     val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -91,10 +97,7 @@ fun LoginScreen(
         }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
+    BackgroundContainer(isDarkTheme = isDarkTheme) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -104,15 +107,19 @@ fun LoginScreen(
         ) {
             Text(
                 text = "Iniciar Sesión",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.displaySmall, // Usando displaySmall para el título
+                color = if (isDarkTheme) TextPrimary else PrimaryDark,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
 
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it.filter { c -> c != ' ' } },
-                label = { Text("Correo electrónico") },
+                label = { Text(
+                    "Correo electrónico",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark
+                ) },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
@@ -121,6 +128,12 @@ fun LoginScreen(
                     onNext = { passwordFocusRequester.requestFocus() }
                 ),
                 singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    unfocusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    focusedBorderColor = Primary,
+                    unfocusedBorderColor = Secondary
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp)
@@ -129,7 +142,7 @@ fun LoginScreen(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it.filter { c -> c != ' ' } },
-                label = { Text("Contraseña") },
+                label = { Text("Contraseña",  style = MaterialTheme.typography.bodyMedium, color = if (isDarkTheme) TextPrimary else PrimaryDark) },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
@@ -142,6 +155,12 @@ fun LoginScreen(
                     }
                 ),
                 singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    unfocusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    focusedBorderColor = Primary,
+                    unfocusedBorderColor = Secondary
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(passwordFocusRequester),
@@ -149,7 +168,8 @@ fun LoginScreen(
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña"
+                            contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                            tint = if (isDarkTheme) TextPrimary else PrimaryDark
                         )
                     }
                 }
@@ -159,23 +179,38 @@ fun LoginScreen(
 
             Button(
                 onClick = { loginViewModel.login(email, password) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Primary,
+                    contentColor = TextPrimary
+                )
             ) {
-                Text("Iniciar sesión")
+                Text(
+                    "Iniciar sesión",
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedButton(
                 onClick = { launcher.launch(googleSignInClient.signInIntent) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = if (isDarkTheme) TextPrimary else PrimaryDark
+                )
             ) {
                 Text("Iniciar sesión con Google")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            TextButton(onClick = { navController.navigate("recuperar_contrasena") }) {
+            TextButton(
+                onClick = { navController.navigate("recuperar_contrasena") },
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = if (isDarkTheme) TextPrimary else PrimaryDark
+                )
+            ) {
                 Text("¿Olvidaste tu contraseña?")
             }
 
@@ -184,8 +219,17 @@ fun LoginScreen(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("¿No tienes una cuenta?")
-                TextButton(onClick = { navController.navigate("crear_cuenta") }) {
+                Text(
+                    "¿No tienes una cuenta?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark
+                )
+                TextButton(
+                    onClick = { navController.navigate("crear_cuenta") },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Primary
+                    )
+                ) {
                     Text("Regístrate")
                 }
             }
@@ -199,7 +243,10 @@ fun LoginScreen(
             }
 
             if (loginState is LoginState.Loading) {
-                CircularProgressIndicator(modifier = Modifier.padding(top = 16.dp))
+                CircularProgressIndicator(
+                    modifier = Modifier.padding(top = 16.dp),
+                    color = Primary
+                )
             }
         }
     }
