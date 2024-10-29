@@ -33,21 +33,12 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun login(email: String, password: String) {
-        viewModelScope.launch {
-            try {
-                _authState.value = AuthState.Loading
-                auth.signInWithEmailAndPassword(email, password).await()
-                checkAuthState()
-            } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Error de autenticación")
-            }
-        }
-    }
-
-// En AuthViewModel.kt
-
-    fun registerWithProfile(email: String, password: String, nombre: String) {
+    // Método actualizado para manejar el registro con todos los campos
+    fun createUserWithEmailAndPassword(
+        email: String,
+        password: String,
+        userData: Map<String, Any>
+    ) {
         viewModelScope.launch {
             try {
                 _authState.value = AuthState.Loading
@@ -57,10 +48,13 @@ class AuthViewModel : ViewModel() {
                     val usuario = Usuario(
                         uid = user.uid,
                         email = email,
-                        nombre = nombre,
-                        provider = AuthProvider.EMAIL
+                        nombre = userData["nombre"] as String,
+                        provider = AuthProvider.EMAIL,
+                        telefono = userData["telefono"] as String,
+                        createdAt = userData["createdAt"] as Long
                     )
 
+                    // Guardar en Firestore con todos los campos
                     db.collection("usuarios")
                         .document(user.uid)
                         .set(usuario)
@@ -74,6 +68,7 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+    // Actualizado para manejar la información adicional de Google
     fun loginWithGoogle(account: GoogleSignInAccount?) {
         viewModelScope.launch {
             try {
@@ -88,7 +83,9 @@ class AuthViewModel : ViewModel() {
                         uid = user.uid,
                         email = user.email ?: "",
                         nombre = account.displayName ?: "",
-                        provider = AuthProvider.GOOGLE
+                        provider = AuthProvider.GOOGLE,
+                        telefono = "", // Campo opcional para Google
+                        createdAt = System.currentTimeMillis()
                     )
                     db.collection("usuarios")
                         .document(user.uid)
@@ -97,8 +94,20 @@ class AuthViewModel : ViewModel() {
                     _authState.value = AuthState.Authenticated(user)
                 } ?: throw Exception("No se pudo obtener información del usuario")
             } catch (e: Exception) {
-                _authState.value =
-                    AuthState.Error(e.message ?: "Error en el inicio de sesión con Google")
+                _authState.value = AuthState.Error(e.message ?: "Error en el inicio de sesión con Google")
+            }
+        }
+    }
+
+    // Los demás métodos permanecen igual
+    fun login(email: String, password: String) {
+        viewModelScope.launch {
+            try {
+                _authState.value = AuthState.Loading
+                auth.signInWithEmailAndPassword(email, password).await()
+                checkAuthState()
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "Error de autenticación")
             }
         }
     }
@@ -115,8 +124,7 @@ class AuthViewModel : ViewModel() {
                 auth.sendPasswordResetEmail(email).await()
                 _authState.value = AuthState.ResetPasswordSent
             } catch (e: Exception) {
-                _authState.value =
-                    AuthState.Error(e.message ?: "Error al enviar el correo de restablecimiento")
+                _authState.value = AuthState.Error(e.message ?: "Error al enviar el correo de restablecimiento")
             }
         }
     }

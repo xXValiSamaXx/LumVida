@@ -1,6 +1,7 @@
 package com.example.lumviva.ui.crearcuenta
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -28,16 +29,23 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lumviva.ui.Auth.ui.AuthState
 import com.example.lumviva.ui.Auth.ui.AuthViewModel
+import com.example.lumviva.ui.theme.BackgroundContainer
+import com.example.lumviva.ui.theme.Primary
+import com.example.lumviva.ui.theme.PrimaryDark
+import com.example.lumviva.ui.theme.Secondary
+import com.example.lumviva.ui.theme.TextPrimary
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun CrearCuentaScreen(
     navController: NavController,
     authViewModel: AuthViewModel = viewModel(),
-    crearCuentaViewModel: CrearCuentaViewModel = viewModel { CrearCuentaViewModel(authViewModel) }
+    crearCuentaViewModel: CrearCuentaViewModel = viewModel { CrearCuentaViewModel(authViewModel) },
+    isDarkTheme: Boolean = isSystemInDarkTheme()
 ) {
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
+    var telefono by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmarPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -47,6 +55,7 @@ fun CrearCuentaScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     val emailFocusRequester = remember { FocusRequester() }
+    val telefonoFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
     val confirmarPasswordFocusRequester = remember { FocusRequester() }
 
@@ -59,10 +68,7 @@ fun CrearCuentaScreen(
         }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
+    BackgroundContainer(isDarkTheme = isDarkTheme) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -73,15 +79,20 @@ fun CrearCuentaScreen(
         ) {
             Text(
                 text = "Crear Cuenta",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.displaySmall,
+                color = if (isDarkTheme) TextPrimary else PrimaryDark,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
 
             OutlinedTextField(
                 value = nombre,
                 onValueChange = { nombre = it },
-                label = { Text("Nombre") },
+                label = {
+                    Text(
+                        "Nombre",
+                        color = if (isDarkTheme) TextPrimary else PrimaryDark
+                    )
+                },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Next
@@ -90,6 +101,12 @@ fun CrearCuentaScreen(
                     onNext = { emailFocusRequester.requestFocus() }
                 ),
                 singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    unfocusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    focusedBorderColor = Primary,
+                    unfocusedBorderColor = Secondary
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp)
@@ -98,27 +115,81 @@ fun CrearCuentaScreen(
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it.filter { c -> c != ' ' } },
-                label = { Text("Correo electrónico") },
+                label = {
+                    Text(
+                        "Correo electrónico",
+                        color = if (isDarkTheme) TextPrimary else PrimaryDark
+                    )
+                },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
                 ),
                 keyboardActions = KeyboardActions(
-                    onNext = { passwordFocusRequester.requestFocus() }
+                    onNext = { telefonoFocusRequester.requestFocus() }
                 ),
                 singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    unfocusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    focusedBorderColor = Primary,
+                    unfocusedBorderColor = Secondary
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp)
                     .focusRequester(emailFocusRequester)
             )
 
+            OutlinedTextField(
+                value = telefono,
+                onValueChange = {
+                    // Solo permitir números y limitar a 10 dígitos
+                    if (it.length <= 10 && it.all { c -> c.isDigit() }) {
+                        telefono = it
+                    }
+                },
+                label = {
+                    Text(
+                        "Teléfono",
+                        color = if (isDarkTheme) TextPrimary else PrimaryDark
+                    )
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Phone,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { passwordFocusRequester.requestFocus() }
+                ),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    unfocusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    focusedBorderColor = Primary,
+                    unfocusedBorderColor = Secondary
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+                    .focusRequester(telefonoFocusRequester)
+            )
+
+            // Campo de contraseña con indicador de fortaleza
             Column {
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it.filter { c -> c != ' ' } },
-                    label = { Text("Contraseña") },
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    label = {
+                        Text(
+                            "Contraseña",
+                            color = if (isDarkTheme) TextPrimary else PrimaryDark
+                        )
+                    },
+                    visualTransformation = if (passwordVisible)
+                        VisualTransformation.None
+                    else
+                        PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Next
@@ -127,21 +198,34 @@ fun CrearCuentaScreen(
                         onNext = { confirmarPasswordFocusRequester.requestFocus() }
                     ),
                     singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                        unfocusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                        focusedBorderColor = Primary,
+                        unfocusedBorderColor = Secondary
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(passwordFocusRequester),
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
-                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña"
+                                imageVector = if (passwordVisible)
+                                    Icons.Default.Visibility
+                                else
+                                    Icons.Default.VisibilityOff,
+                                contentDescription = if (passwordVisible)
+                                    "Ocultar contraseña"
+                                else
+                                    "Mostrar contraseña",
+                                tint = if (isDarkTheme) TextPrimary else PrimaryDark
                             )
                         }
                     }
                 )
 
+                // Indicador de fortaleza y requisitos
                 if (password.isNotEmpty()) {
-                    // Indicador de fortaleza
                     val strength = calculatePasswordStrength(password)
                     val (color, label) = when {
                         strength >= 80 -> Color(0xFF4CAF50) to "Fuerte"
@@ -165,8 +249,7 @@ fun CrearCuentaScreen(
                             Text(
                                 text = label,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = color,
-                                fontWeight = FontWeight.Bold
+                                color = color
                             )
                         }
 
@@ -175,6 +258,7 @@ fun CrearCuentaScreen(
                             Text(
                                 text = "La contraseña debe contener:",
                                 style = MaterialTheme.typography.bodySmall,
+                                color = if (isDarkTheme) TextPrimary else PrimaryDark,
                                 modifier = Modifier.padding(bottom = 4.dp)
                             )
 
@@ -183,7 +267,8 @@ fun CrearCuentaScreen(
                                 "Al menos una letra mayúscula" to password.any { it.isUpperCase() },
                                 "Al menos una letra minúscula" to password.any { it.isLowerCase() },
                                 "Al menos un número" to password.any { it.isDigit() },
-                                "Al menos un carácter especial (@#\$%^&+=)" to password.any { "@#\$%^&+=".contains(it) }
+                                "Al menos un carácter especial (@#\$%^&+=)" to
+                                        password.any { "@#\$%^&+=".contains(it) }
                             )
 
                             requirements.forEach { (requirement, isMet) ->
@@ -208,8 +293,16 @@ fun CrearCuentaScreen(
             OutlinedTextField(
                 value = confirmarPassword,
                 onValueChange = { confirmarPassword = it.filter { c -> c != ' ' } },
-                label = { Text("Confirmar contraseña") },
-                visualTransformation = if (confirmarPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                label = {
+                    Text(
+                        "Confirmar contraseña",
+                        color = if (isDarkTheme) TextPrimary else PrimaryDark
+                    )
+                },
+                visualTransformation = if (confirmarPasswordVisible)
+                    VisualTransformation.None
+                else
+                    PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Done
@@ -217,18 +310,33 @@ fun CrearCuentaScreen(
                 keyboardActions = KeyboardActions(
                     onDone = {
                         keyboardController?.hide()
-                        crearCuentaViewModel.crearCuenta(email, password, confirmarPassword, nombre)
+                        if (validateInputs(nombre, email, telefono, password, confirmarPassword)) {
+                            crearCuentaViewModel.crearCuenta(email, password, confirmarPassword, nombre, telefono)
+                        }
                     }
                 ),
                 singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    unfocusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    focusedBorderColor = Primary,
+                    unfocusedBorderColor = Secondary
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(confirmarPasswordFocusRequester),
                 trailingIcon = {
                     IconButton(onClick = { confirmarPasswordVisible = !confirmarPasswordVisible }) {
                         Icon(
-                            imageVector = if (confirmarPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = if (confirmarPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña"
+                            imageVector = if (confirmarPasswordVisible)
+                                Icons.Default.Visibility
+                            else
+                                Icons.Default.VisibilityOff,
+                            contentDescription = if (confirmarPasswordVisible)
+                                "Ocultar contraseña"
+                            else
+                                "Mostrar contraseña",
+                            tint = if (isDarkTheme) TextPrimary else PrimaryDark
                         )
                     }
                 }
@@ -238,31 +346,36 @@ fun CrearCuentaScreen(
 
             Button(
                 onClick = {
-                    crearCuentaViewModel.crearCuenta(email, password, confirmarPassword, nombre)
+                    if (validateInputs(nombre, email, telefono, password, confirmarPassword)) {
+                        crearCuentaViewModel.crearCuenta(email, password, confirmarPassword, nombre, telefono)
+                    }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Primary,
+                    contentColor = TextPrimary
+                )
             ) {
-                Text("Crear cuenta")
+                Text(
+                    "Crear cuenta",
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
 
             if (crearCuentaState is CrearCuentaState.Error) {
                 Text(
                     text = (crearCuentaState as CrearCuentaState.Error).message,
+                    style = MaterialTheme.typography.bodySmall,
                     color = Color.Red,
                     modifier = Modifier.padding(top = 16.dp)
                 )
             }
 
-            if (authState is AuthState.Error) {
-                Text(
-                    text = (authState as AuthState.Error).message,
-                    color = Color.Red,
-                    modifier = Modifier.padding(top = 16.dp)
+            if (crearCuentaState is CrearCuentaState.Loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.padding(top = 16.dp),
+                    color = Primary
                 )
-            }
-
-            if (crearCuentaState is CrearCuentaState.Loading || authState is AuthState.Loading) {
-                CircularProgressIndicator(modifier = Modifier.padding(top = 16.dp))
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -270,12 +383,45 @@ fun CrearCuentaScreen(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("¿Ya tienes una cuenta?")
-                TextButton(onClick = { navController.navigate("login") }) {
-                    Text("Inicia sesión")
+                Text(
+                    "¿Ya tienes una cuenta?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark
+                )
+                TextButton(
+                    onClick = { navController.navigate("login") },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Primary
+                    )
+                ) {
+                    Text(
+                        "Inicia sesión",
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
             }
         }
+    }
+}
+
+private fun validateInputs(
+    nombre: String,
+    email: String,
+    telefono: String,
+    password: String,
+    confirmarPassword: String
+): Boolean {
+    return when {
+        nombre.isBlank() -> false
+        !email.matches(Regex("[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+")) -> false
+        telefono.length != 10 -> false
+        password != confirmarPassword -> false
+        password.length < 8 -> false
+        !password.any { it.isUpperCase() } -> false
+        !password.any { it.isLowerCase() } -> false
+        !password.any { it.isDigit() } -> false
+        !password.any { "@#\$%^&+=".contains(it) } -> false
+        else -> true
     }
 }
 

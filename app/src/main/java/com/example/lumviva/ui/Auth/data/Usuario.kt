@@ -9,6 +9,7 @@ data class Usuario(
     val uid: String = "",
     val email: String = "",
     val nombre: String = "",
-    val createdAt: Long = System.currentTimeMillis(),
-    val provider: AuthProvider = AuthProvider.EMAIL  // Por defecto EMAIL
+    val provider: AuthProvider = AuthProvider.EMAIL,
+    val telefono: String = "",
+    val createdAt: Long = 0
 )
