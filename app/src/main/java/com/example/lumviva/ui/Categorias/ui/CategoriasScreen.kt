@@ -32,34 +32,37 @@ fun OptionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Botón personalizado que ejecuta una acción al hacer clic
     Button(
-        onClick = onClick,
+        onClick = onClick, // Acción a ejecutar cuando se presiona el botón
         modifier = modifier
-            .width(110.dp)
-            .height(100.dp),
+            .width(110.dp) // Define el ancho del botón
+            .height(100.dp), // Define la altura del botón
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Transparent
+            containerColor = Color.Transparent // Hace que el fondo del botón sea transparente
         ),
-        contentPadding = PaddingValues(4.dp)
+        contentPadding = PaddingValues(4.dp) // Define el padding del contenido dentro del botón
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally, // Alineación horizontal centrada
+            verticalArrangement = Arrangement.Center // Alineación vertical centrada
         ) {
+            // Ícono que se muestra en el botón
             Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(40.dp)
+                imageVector = icon, // Ícono proporcionado como parámetro
+                contentDescription = null, // Sin descripción para accesibilidad
+                tint = Color.White, // Color del ícono en blanco
+                modifier = Modifier.size(40.dp) // Tamaño del ícono
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(4.dp)) // Espacio entre el ícono y el texto
+            // Texto que se muestra en el botón
             Text(
-                text = text,
-                color = Color.White,
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                lineHeight = 16.sp
+                text = text, // Texto proporcionado como parámetro
+                color = Color.White, // Color del texto en blanco
+                fontSize = 14.sp, // Tamaño de la fuente
+                textAlign = TextAlign.Center, // Texto centrado
+                maxLines = 2, // Máximo de líneas que puede ocupar el texto
+                lineHeight = 16.sp // Altura de línea del texto
             )
         }
     }
@@ -71,63 +74,68 @@ fun CategoriasScreen(
     navController: NavController,
     viewModel: CategoriasViewModel
 ) {
+    // Controlador de la UI del sistema para cambiar el color de la barra de estado
     val systemUiController = rememberSystemUiController()
 
     SideEffect {
         systemUiController.setStatusBarColor(
-            color = Color.White,
-            darkIcons = true
+            color = Color.White, // Color de la barra de estado en blanco
+            darkIcons = true // Usa íconos oscuros en la barra de estado
         )
     }
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF8B0000))
+            .fillMaxSize() // Hace que la columna ocupe todo el tamaño disponible
+            .background(Color(0xFF8B0000)) // Fondo rojo oscuro para la pantalla
     ) {
-        Header(navController, viewModel) // Pasando el viewModel al Header
+        Header(navController, viewModel) // Muestra el encabezado de la pantalla
 
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
-            contentAlignment = Alignment.Center
+                .fillMaxSize() // Box ocupa todo el espacio disponible
+                .padding(horizontal = 24.dp), // Espacio horizontal de 24.dp
+            contentAlignment = Alignment.Center // Centra el contenido dentro del Box
         ) {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(48.dp)
+                horizontalAlignment = Alignment.CenterHorizontally, // Alinea el contenido en el centro
+                verticalArrangement = Arrangement.spacedBy(48.dp) // Espacio de 48.dp entre los elementos
             ) {
+                // Título principal de la pantalla
                 Text(
-                    text = "¿Qué deseas reportar?",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    textAlign = TextAlign.Center
+                    text = "¿Qué deseas reportar?", // Texto que se muestra
+                    fontSize = 28.sp, // Tamaño de la fuente
+                    fontWeight = FontWeight.Bold, // Texto en negrita
+                    color = Color.White, // Texto de color blanco
+                    textAlign = TextAlign.Center // Texto centrado
                 )
 
-                CategoriaGrid(navController, viewModel)
+                CategoriaGrid(navController, viewModel) // Muestra el grid de categorías
             }
         }
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun CategoriaGrid(
     navController: NavController,
     viewModel: CategoriasViewModel
 ) {
+    // Grid vertical que muestra una lista de categorías en un diseño de rejilla
     LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalArrangement = Arrangement.spacedBy(40.dp),
-        modifier = Modifier.fillMaxWidth()
+        columns = GridCells.Fixed(3), // 3 columnas en la rejilla
+        horizontalArrangement = Arrangement.SpaceBetween, // Espacio entre columnas
+        verticalArrangement = Arrangement.spacedBy(40.dp), // Espacio entre filas de 40.dp
+        modifier = Modifier.fillMaxWidth() // El grid ocupa todo el ancho disponible
     ) {
-        items(viewModel.categorias.size) { index ->
-            val categoria = viewModel.categorias[index]
+        items(viewModel.categorias.size) { index -> // Recorre las categorías del ViewModel
+            val categoria = viewModel.categorias[index] // Obtiene la categoría actual
             OptionButton(
-                text = categoria.titulo,
-                icon = categoria.icono,
+                text = categoria.titulo, // Texto del botón de categoría
+                icon = categoria.icono, // Ícono de la categoría
                 onClick = {
+                    // Navega a la pantalla de creación de reporte para la categoría seleccionada
                     viewModel.navigateToCrearReporte(navController, categoria)
                 }
             )
@@ -141,27 +149,30 @@ private fun Header(
     navController: NavController,
     viewModel: CategoriasViewModel
 ) {
+    // Encabezado de la pantalla
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White)
-            .padding(vertical = 16.dp)
-            .statusBarsPadding()
+            .fillMaxWidth() // El encabezado ocupa todo el ancho disponible
+            .background(Color.White) // Fondo blanco
+            .padding(vertical = 16.dp) // Espaciado vertical de 16.dp
+            .statusBarsPadding() // Alinea el contenido del encabezado debajo de la barra de estado
     ) {
+        // Título del encabezado
         Text(
-            text = "La Ciudad hoy",
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            fontSize = 18.sp,
-            color = Color.Black
+            text = "La Ciudad hoy", // Texto del título
+            modifier = Modifier.fillMaxWidth(), // Ocupa todo el ancho
+            textAlign = TextAlign.Center, // Centrado
+            fontSize = 18.sp, // Tamaño de fuente
+            color = Color.Black // Color negro para el texto
         )
 
+        // Fecha formateada desde el ViewModel
         Text(
-            text = viewModel.formattedDate,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            fontSize = 16.sp,
-            color = Color.Gray
+            text = viewModel.formattedDate, // Fecha proporcionada por el ViewModel
+            modifier = Modifier.fillMaxWidth(), // Ocupa todo el ancho
+            textAlign = TextAlign.Center, // Centrado
+            fontSize = 16.sp, // Tamaño de fuente
+            color = Color.Gray // Texto de color gris
         )
     }
 }

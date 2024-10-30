@@ -39,89 +39,93 @@ import kotlinx.coroutines.delay
 import java.io.File
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
+// Composable que representa la pantalla para crear un reporte.
 @Composable
 fun CrearReporteScreen(
-    navController: NavController,
-    viewModel: CrearReporteViewModel,
-    authViewModel: AuthViewModel,
-    categoria: String = "nombre de la selección"
+    navController: NavController,           // Controlador de navegación para la pantalla
+    viewModel: CrearReporteViewModel,        // ViewModel para gestionar la lógica del reporte
+    authViewModel: AuthViewModel,            // ViewModel de autenticación
+    categoria: String = "nombre de la selección" // Categoría del reporte, con valor predeterminado
 ) {
-    val context = LocalContext.current
-    val systemUiController = rememberSystemUiController()
-    var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    val context = LocalContext.current // Obtener el contexto actual
+    val systemUiController = rememberSystemUiController() // Controlador para UI del sistema
+    var currentPhotoUri by remember { mutableStateOf<Uri?>(null) } // URI de la foto capturada
 
     // Permisos de cámara
     val cameraPermissionState = rememberPermissionState(
-        Manifest.permission.CAMERA
+        Manifest.permission.CAMERA // Estado del permiso de cámara
     )
 
     // Preparar URI para la foto
     val getNewPhotoUri = {
         FileProvider.getUriForFile(
             context,
-            "${context.packageName}.fileprovider",
+            "${context.packageName}.fileprovider", // Proveedor de archivos
             File(
-                context.getExternalFilesDir(null),
-                "photo_${System.currentTimeMillis()}.jpg"
+                context.getExternalFilesDir(null), // Directorio para almacenar la foto
+                "photo_${System.currentTimeMillis()}.jpg" // Nombre de archivo con timestamp
             )
         )
     }
 
     // Launcher de la cámara actualizado
     val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
+        contract = ActivityResultContracts.TakePicture() // Lanzador para tomar foto
+    ) { success -> // Callback cuando se toma la foto
         if (success) {
-            currentPhotoUri?.let { uri ->
-                viewModel.onPhotoCaptured(uri)
+            currentPhotoUri?.let { uri -> // Si la foto fue capturada
+                viewModel.onPhotoCaptured(uri) // Enviar URI de la foto al ViewModel
             }
         }
     }
 
-    // Function to handle photo capture
+    // Función para manejar la captura de foto
     val handlePhotoCapture = {
         try {
-            currentPhotoUri = getNewPhotoUri()
-            currentPhotoUri?.let { uri ->
-                cameraLauncher.launch(uri)
+            currentPhotoUri = getNewPhotoUri() // Obtener nuevo URI para la foto
+            currentPhotoUri?.let { uri -> // Si el URI no es nulo
+                cameraLauncher.launch(uri) // Lanzar la cámara
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            e.printStackTrace() // Manejo de excepciones
         }
     }
 
+    // Función para obtener artículo basado en la categoría
     @Composable
     fun getArticulo(categoria: String): String {
         return when (categoria.lowercase()) {
-            "luminaria" -> "la "
-            else -> "el "
+            "luminaria" -> "la " // Ajuste de artículo para categoría "luminaria"
+            else -> "el " // Por defecto
         }
     }
 
+    // Configuración del color de la barra de estado
     SideEffect {
         systemUiController.setStatusBarColor(
             color = Color.White,
-            darkIcons = true
+            darkIcons = true // Iconos oscuros en la barra de estado
         )
     }
 
+    // Estructura principal de la pantalla
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
+            .fillMaxSize() // Llenar el espacio disponible
+            .background(Color.White) // Fondo blanco
+            .statusBarsPadding() // Padding para la barra de estado
+            .verticalScroll(rememberScrollState()) // Habilitar scroll vertical
     ) {
-        // Header
+        // Encabezado
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF8B0000))
-                .padding(vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth() // Ancho completo
+                .background(Color(0xFF8B0000)) // Fondo de color rojo oscuro
+                .padding(vertical = 16.dp), // Padding vertical
+            horizontalAlignment = Alignment.CenterHorizontally // Alinear al centro
         ) {
             Text(
-                text = "Reportar $categoria",
+                text = "Reportar $categoria", // Título de la pantalla
                 color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
@@ -129,58 +133,60 @@ fun CrearReporteScreen(
             )
         }
 
-        // Content
+        // Contenido principal
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .padding(top = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxSize() // Llenar el espacio disponible
+                .padding(horizontal = 16.dp) // Padding horizontal
+                .padding(top = 16.dp), // Padding superior
+            verticalArrangement = Arrangement.spacedBy(8.dp) // Espaciado vertical
         ) {
             // Sección de Foto
             Text(
-                text = "Adjuntar evidencia del reporte",
+                text = "Adjuntar evidencia del reporte", // Instrucción para el usuario
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = "Foto",
                 fontSize = 16.sp,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier.padding(top = 8.dp) // Padding superior
             )
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFE0E0E0))
-                    .clickable {
+                    .fillMaxWidth() // Ancho completo
+                    .height(200.dp) // Altura fija
+                    .clip(RoundedCornerShape(8.dp)) // Bordes redondeados
+                    .background(Color(0xFFE0E0E0)) // Fondo gris claro
+                    .clickable { // Manejo del clic para capturar foto
                         if (cameraPermissionState.status.isGranted) {
-                            handlePhotoCapture()
+                            handlePhotoCapture() // Capturar foto si el permiso está concedido
                         } else {
-                            cameraPermissionState.launchPermissionRequest()
+                            cameraPermissionState.launchPermissionRequest() // Solicitar permiso
                         }
                     }
             ) {
+                // Mostrar foto capturada si existe
                 if (viewModel.hasPhoto && viewModel.photoUri != null) {
                     AsyncImage(
-                        model = viewModel.photoUri,
-                        contentDescription = "Foto capturada",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        model = viewModel.photoUri, // URI de la foto
+                        contentDescription = "Foto capturada", // Descripción de contenido
+                        modifier = Modifier.fillMaxSize(), // Llenar el espacio
+                        contentScale = ContentScale.Crop // Escalar la imagen
                     )
                 } else {
+                    // Dibujo de líneas cruzadas si no hay foto
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         drawLine(
                             color = Color.Gray,
-                            start = Offset(0f, 0f),
-                            end = Offset(size.width, size.height),
+                            start = Offset(0f, 0f), // Inicio de la línea
+                            end = Offset(size.width, size.height), // Fin de la línea
                             strokeWidth = 4f,
                             cap = StrokeCap.Round
                         )
                         drawLine(
                             color = Color.Gray,
-                            start = Offset(size.width, 0f),
+                            start = Offset(size.width, 0f), // Línea cruzada
                             end = Offset(0f, size.height),
                             strokeWidth = 4f,
                             cap = StrokeCap.Round
@@ -191,175 +197,178 @@ fun CrearReporteScreen(
 
             // Sección de Ubicación
             Text(
-                text = "¿Dónde se encuentra ubicado ${getArticulo(categoria)}${categoria.lowercase()}?",
+                text = "¿Dónde se encuentra ubicado ${getArticulo(categoria)}${categoria.lowercase()}?", // Pregunta sobre la ubicación
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 16.dp)
+                modifier = Modifier.padding(top = 16.dp) // Padding superior
             )
             Text(
                 text = "Dirección",
                 fontSize = 16.sp,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier.padding(top = 8.dp) // Padding superior
             )
             OutlinedTextField(
-                value = viewModel.direccion,
-                onValueChange = { /* No permitimos cambios manuales */ },
-                modifier = Modifier.fillMaxWidth(),
+                value = viewModel.direccion, // Dirección del ViewModel
+                onValueChange = { /* No permitimos cambios manuales */ }, // Sin cambios manuales
+                modifier = Modifier.fillMaxWidth(), // Ancho completo
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     unfocusedBorderColor = Color.Gray,
-                    focusedBorderColor = Color(0xFF8B0000)
+                    focusedBorderColor = Color(0xFF8B0000) // Color del borde al tener el foco
                 ),
                 placeholder = {
-                    Text("Ubicación del maps ejemplo Othon P.Blanco 123, Bosque, Ciudad chetumal Q.ROO")
+                    Text("Ubicación del maps ejemplo Othon P.Blanco 123, Bosque, Ciudad chetumal Q.ROO") // Texto de ayuda
                 },
-                readOnly = true,
-                shape = RoundedCornerShape(8.dp)
+                readOnly = true, // Campo de solo lectura
+                shape = RoundedCornerShape(8.dp) // Bordes redondeados
             )
 
+            // Botón para buscar ubicación en el mapa
             Button(
-                onClick = { viewModel.onMapClick() },
+                onClick = { viewModel.onMapClick() }, // Acción al hacer clic
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .fillMaxWidth() // Ancho completo
+                    .padding(vertical = 8.dp), // Padding vertical
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF8B0000)
+                    containerColor = Color(0xFF8B0000) // Color del fondo del botón
                 ),
-                shape = RoundedCornerShape(24.dp)
+                shape = RoundedCornerShape(24.dp) // Bordes redondeados
             ) {
                 Text(
-                    text = "Buscar ubicación en el mapa",
+                    text = "Buscar ubicación en el mapa", // Texto del botón
                     color = Color.White,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(vertical = 8.dp) // Padding vertical
                 )
             }
 
             // Sección de Comentario
             Text(
-                text = "¿Por qué deseas reportar?",
+                text = "¿Por qué deseas reportar?", // Pregunta para el comentario
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 16.dp)
+                modifier = Modifier.padding(top = 16.dp) // Padding superior
             )
             Text(
                 text = "Comentario",
                 fontSize = 16.sp,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier.padding(top = 8.dp) // Padding superior
             )
             OutlinedTextField(
-                value = viewModel.comentario,
-                onValueChange = { viewModel.onComentarioChange(it) },
+                value = viewModel.comentario, // Comentario del ViewModel
+                onValueChange = { viewModel.onComentarioChange(it) }, // Cambiar comentario en el ViewModel
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp),
+                    .fillMaxWidth() // Ancho completo
+                    .height(100.dp), // Altura fija
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     unfocusedBorderColor = Color.Gray,
-                    focusedBorderColor = Color(0xFF8B0000)
+                    focusedBorderColor = Color(0xFF8B0000) // Color del borde al tener el foco
                 ),
                 placeholder = {
-                    Text("Describe el reporte a detalle del porque estas reportando.")
+                    Text("Describe el reporte a detalle del porque estas reportando.") // Texto de ayuda
                 },
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp) // Bordes redondeados
             )
 
             // Botón de enviar reporte
             Button(
                 onClick = {
-                    viewModel.sendReport(categoria, authViewModel)
+                    viewModel.sendReport(categoria, authViewModel) // Enviar reporte al ViewModel
                 },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
+                    .fillMaxWidth() // Ancho completo
+                    .padding(vertical = 16.dp), // Padding vertical
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF8B0000)
+                    containerColor = Color(0xFF8B0000) // Color del fondo del botón
                 ),
-                shape = RoundedCornerShape(24.dp),
-                enabled = !viewModel.isLoading
+                shape = RoundedCornerShape(24.dp), // Bordes redondeados
+                enabled = !viewModel.isLoading // Deshabilitar botón si se está cargando
             ) {
                 if (viewModel.isLoading) {
                     CircularProgressIndicator(
-                        color = Color.White,
-                        modifier = Modifier.size(24.dp)
+                        color = Color.White, // Indicador de progreso blanco
+                        modifier = Modifier.size(24.dp) // Tamaño del indicador
                     )
                 } else {
                     Text(
-                        text = "Enviar reporte",
+                        text = "Enviar reporte", // Texto del botón
                         color = Color.White,
-                        modifier = Modifier.padding(vertical = 8.dp)
+                        modifier = Modifier.padding(vertical = 8.dp) // Padding vertical
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp)) // Espacio en blanco al final
         }
     }
 
-    // Dialogs
+    // Diálogos de error
     if (viewModel.showErrorDialog) {
         AlertDialog(
-            onDismissRequest = { viewModel.dismissErrorDialog() },
-            title = { Text("Atención") },
+            onDismissRequest = { viewModel.dismissErrorDialog() }, // Acción al cerrar el diálogo
+            title = { Text("Atención") }, // Título del diálogo
             text = {
                 Text(
-                    text = viewModel.errorMessage ?: "",
+                    text = viewModel.errorMessage ?: "", // Mensaje de error
                     style = MaterialTheme.typography.bodyLarge
                 )
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.dismissErrorDialog() }) {
+                TextButton(onClick = { viewModel.dismissErrorDialog() }) { // Botón para aceptar el error
                     Text("Aceptar")
                 }
             },
-            containerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface,
-            textContentColor = MaterialTheme.colorScheme.onSurface,
+            containerColor = MaterialTheme.colorScheme.surface, // Color de fondo del diálogo
+            titleContentColor = MaterialTheme.colorScheme.onSurface, // Color del título
+            textContentColor = MaterialTheme.colorScheme.onSurface // Color del texto
         )
     }
 
+    // Diálogo de éxito
     if (viewModel.reporteSent) {
         AlertDialog(
-            onDismissRequest = { },
+            onDismissRequest = { }, // No hay acción al cerrar
             title = {
                 Text(
-                    "¡Éxito!",
+                    "¡Éxito!", // Título del diálogo
                     style = MaterialTheme.typography.headlineSmall
                 )
             },
             text = {
                 Text(
-                    "Tu reporte ha sido enviado correctamente",
+                    "Tu reporte ha sido enviado correctamente", // Mensaje de éxito
                     style = MaterialTheme.typography.bodyLarge
                 )
             },
-            confirmButton = { },
-            containerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface,
-            textContentColor = MaterialTheme.colorScheme.onSurface,
+            confirmButton = { }, // Sin botón de confirmación
+            containerColor = MaterialTheme.colorScheme.surface, // Color de fondo del diálogo
+            titleContentColor = MaterialTheme.colorScheme.onSurface, // Color del título
+            textContentColor = MaterialTheme.colorScheme.onSurface // Color del texto
         )
 
-        LaunchedEffect(Unit) {
-            delay(1500L)
-            navController.navigate("categorias") {
-                popUpTo("categorias") { inclusive = true }
+        LaunchedEffect(Unit) { // Efecto que se lanza al enviar el reporte
+            delay(1500L) // Esperar 1.5 segundos
+            navController.navigate("categorias") { // Navegar a la pantalla de categorías
+                popUpTo("categorias") { inclusive = true } // Limpiar la pila de navegación
             }
         }
     }
 
+    // Diálogo del mapa
     if (viewModel.showMap) {
         AlertDialog(
-            onDismissRequest = { viewModel.onDismissMap() },
+            onDismissRequest = { viewModel.onDismissMap() }, // Acción al cerrar el diálogo del mapa
             properties = DialogProperties(
-                usePlatformDefaultWidth = false
+                usePlatformDefaultWidth = false // No usar el ancho predeterminado de la plataforma
             ),
             modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+                .fillMaxSize() // Llenar el espacio
+                .padding(16.dp), // Padding del diálogo
             content = {
                 MapScreen(
-                    onLocationSelected = { point, address ->
-                        viewModel.onLocationSelected(point, address)
+                    onLocationSelected = { point, address -> // Acción al seleccionar una ubicación
+                        viewModel.onLocationSelected(point, address) // Enviar ubicación al ViewModel
                     },
-                    onDismiss = { viewModel.onDismissMap() },
-                    initialLocation = viewModel.getChetumalCenter()
+                    onDismiss = { viewModel.onDismissMap() }, // Acción al cerrar el mapa
+                    initialLocation = viewModel.getChetumalCenter() // Ubicación inicial del mapa
                 )
             }
         )
