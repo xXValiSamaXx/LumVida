@@ -4,9 +4,9 @@ import android.Manifest
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,65 +16,63 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.lumviva.R
 import com.example.lumviva.ui.Auth.ui.AuthViewModel
-import com.example.lumviva.ui.Auth.ui.AuthState
+import com.example.lumviva.ui.theme.*
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import java.io.File
+import androidx.core.content.FileProvider
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
-// Composable que representa la pantalla para crear un reporte.
 @Composable
 fun CrearReporteScreen(
-    navController: NavController,           // Controlador de navegación para la pantalla
-    viewModel: CrearReporteViewModel,        // ViewModel para gestionar la lógica del reporte
-    authViewModel: AuthViewModel,            // ViewModel de autenticación
-    categoria: String = "nombre de la selección" // Categoría del reporte, con valor predeterminado
+    navController: NavController,
+    viewModel: CrearReporteViewModel,
+    authViewModel: AuthViewModel,
+    categoria: String = "nombre de la selección",
+    isDarkTheme: Boolean = isSystemInDarkTheme()
 ) {
-    val context = LocalContext.current // Obtener el contexto actual
-    val systemUiController = rememberSystemUiController() // Controlador para UI del sistema
-    var currentPhotoUri by remember { mutableStateOf<Uri?>(null) } // URI de la foto capturada
+    val context = LocalContext.current
+    val systemUiController = rememberSystemUiController()
+    var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
     // Permisos de cámara
     val cameraPermissionState = rememberPermissionState(
-        Manifest.permission.CAMERA // Estado del permiso de cámara
+        Manifest.permission.CAMERA
     )
 
     // Preparar URI para la foto
     val getNewPhotoUri = {
         FileProvider.getUriForFile(
             context,
-            "${context.packageName}.fileprovider", // Proveedor de archivos
+            "${context.packageName}.fileprovider",
             File(
-                context.getExternalFilesDir(null), // Directorio para almacenar la foto
-                "photo_${System.currentTimeMillis()}.jpg" // Nombre de archivo con timestamp
+                context.getExternalFilesDir(null),
+                "photo_${System.currentTimeMillis()}.jpg"
             )
         )
     }
 
-    // Launcher de la cámara actualizado
+    // Launcher de la cámara
     val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture() // Lanzador para tomar foto
-    ) { success -> // Callback cuando se toma la foto
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
         if (success) {
-            currentPhotoUri?.let { uri -> // Si la foto fue capturada
-                viewModel.onPhotoCaptured(uri) // Enviar URI de la foto al ViewModel
+            currentPhotoUri?.let { uri ->
+                viewModel.onPhotoCaptured(uri)
             }
         }
     }
@@ -82,12 +80,12 @@ fun CrearReporteScreen(
     // Función para manejar la captura de foto
     val handlePhotoCapture = {
         try {
-            currentPhotoUri = getNewPhotoUri() // Obtener nuevo URI para la foto
-            currentPhotoUri?.let { uri -> // Si el URI no es nulo
-                cameraLauncher.launch(uri) // Lanzar la cámara
+            currentPhotoUri = getNewPhotoUri()
+            currentPhotoUri?.let { uri ->
+                cameraLauncher.launch(uri)
             }
         } catch (e: Exception) {
-            e.printStackTrace() // Manejo de excepciones
+            e.printStackTrace()
         }
     }
 
@@ -95,280 +93,285 @@ fun CrearReporteScreen(
     @Composable
     fun getArticulo(categoria: String): String {
         return when (categoria.lowercase()) {
-            "luminaria" -> "la " // Ajuste de artículo para categoría "luminaria"
-            else -> "el " // Por defecto
+            "luminaria" -> "la "
+            else -> "el "
         }
     }
 
-    // Configuración del color de la barra de estado
-    SideEffect {
-        systemUiController.setStatusBarColor(
-            color = Color.White,
-            darkIcons = true // Iconos oscuros en la barra de estado
-        )
-    }
-
-    // Estructura principal de la pantalla
-    Column(
-        modifier = Modifier
-            .fillMaxSize() // Llenar el espacio disponible
-            .background(Color.White) // Fondo blanco
-            .statusBarsPadding() // Padding para la barra de estado
-            .verticalScroll(rememberScrollState()) // Habilitar scroll vertical
-    ) {
-        // Encabezado
+    // Aplicamos BackgroundContainer del tema
+    BackgroundContainer(isDarkTheme = isDarkTheme) {
         Column(
             modifier = Modifier
-                .fillMaxWidth() // Ancho completo
-                .background(Color(0xFF8B0000)) // Fondo de color rojo oscuro
-                .padding(vertical = 16.dp), // Padding vertical
-            horizontalAlignment = Alignment.CenterHorizontally // Alinear al centro
+                .fillMaxSize()
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
         ) {
-            Text(
-                text = "Reportar $categoria", // Título de la pantalla
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-        }
-
-        // Contenido principal
-        Column(
-            modifier = Modifier
-                .fillMaxSize() // Llenar el espacio disponible
-                .padding(horizontal = 16.dp) // Padding horizontal
-                .padding(top = 16.dp), // Padding superior
-            verticalArrangement = Arrangement.spacedBy(8.dp) // Espaciado vertical
-        ) {
-            // Sección de Foto
-            Text(
-                text = "Adjuntar evidencia del reporte", // Instrucción para el usuario
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Foto",
-                fontSize = 16.sp,
-                modifier = Modifier.padding(top = 8.dp) // Padding superior
-            )
-            Box(
+            // Encabezado
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth() // Ancho completo
-                    .height(200.dp) // Altura fija
-                    .clip(RoundedCornerShape(8.dp)) // Bordes redondeados
-                    .background(Color(0xFFE0E0E0)) // Fondo gris claro
-                    .clickable { // Manejo del clic para capturar foto
-                        if (cameraPermissionState.status.isGranted) {
-                            handlePhotoCapture() // Capturar foto si el permiso está concedido
-                        } else {
-                            cameraPermissionState.launchPermissionRequest() // Solicitar permiso
-                        }
-                    }
-            ) {
-                // Mostrar foto capturada si existe
-                if (viewModel.hasPhoto && viewModel.photoUri != null) {
-                    AsyncImage(
-                        model = viewModel.photoUri, // URI de la foto
-                        contentDescription = "Foto capturada", // Descripción de contenido
-                        modifier = Modifier.fillMaxSize(), // Llenar el espacio
-                        contentScale = ContentScale.Crop // Escalar la imagen
-                    )
-                } else {
-                    // Dibujo de líneas cruzadas si no hay foto
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        drawLine(
-                            color = Color.Gray,
-                            start = Offset(0f, 0f), // Inicio de la línea
-                            end = Offset(size.width, size.height), // Fin de la línea
-                            strokeWidth = 4f,
-                            cap = StrokeCap.Round
-                        )
-                        drawLine(
-                            color = Color.Gray,
-                            start = Offset(size.width, 0f), // Línea cruzada
-                            end = Offset(0f, size.height),
-                            strokeWidth = 4f,
-                            cap = StrokeCap.Round
-                        )
-                    }
-                }
-            }
-
-            // Sección de Ubicación
-            Text(
-                text = "¿Dónde se encuentra ubicado ${getArticulo(categoria)}${categoria.lowercase()}?", // Pregunta sobre la ubicación
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 16.dp) // Padding superior
-            )
-            Text(
-                text = "Dirección",
-                fontSize = 16.sp,
-                modifier = Modifier.padding(top = 8.dp) // Padding superior
-            )
-            OutlinedTextField(
-                value = viewModel.direccion, // Dirección del ViewModel
-                onValueChange = { /* No permitimos cambios manuales */ }, // Sin cambios manuales
-                modifier = Modifier.fillMaxWidth(), // Ancho completo
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    unfocusedBorderColor = Color.Gray,
-                    focusedBorderColor = Color(0xFF8B0000) // Color del borde al tener el foco
-                ),
-                placeholder = {
-                    Text("Ubicación del maps ejemplo Othon P.Blanco 123, Bosque, Ciudad chetumal Q.ROO") // Texto de ayuda
-                },
-                readOnly = true, // Campo de solo lectura
-                shape = RoundedCornerShape(8.dp) // Bordes redondeados
-            )
-
-            // Botón para buscar ubicación en el mapa
-            Button(
-                onClick = { viewModel.onMapClick() }, // Acción al hacer clic
-                modifier = Modifier
-                    .fillMaxWidth() // Ancho completo
-                    .padding(vertical = 8.dp), // Padding vertical
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF8B0000) // Color del fondo del botón
-                ),
-                shape = RoundedCornerShape(24.dp) // Bordes redondeados
+                    .fillMaxWidth()
+                    .background(if (isDarkTheme) Primary else Primary)
+                    .padding(vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Buscar ubicación en el mapa", // Texto del botón
-                    color = Color.White,
-                    modifier = Modifier.padding(vertical = 8.dp) // Padding vertical
+                    text = "Reportar $categoria",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = if (isDarkTheme) TextPrimary else TextPrimary,
+                    textAlign = TextAlign.Center
                 )
             }
 
-            // Sección de Comentario
-            Text(
-                text = "¿Por qué deseas reportar?", // Pregunta para el comentario
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 16.dp) // Padding superior
-            )
-            Text(
-                text = "Comentario",
-                fontSize = 16.sp,
-                modifier = Modifier.padding(top = 8.dp) // Padding superior
-            )
-            OutlinedTextField(
-                value = viewModel.comentario, // Comentario del ViewModel
-                onValueChange = { viewModel.onComentarioChange(it) }, // Cambiar comentario en el ViewModel
+            // Contenido principal
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth() // Ancho completo
-                    .height(100.dp), // Altura fija
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    unfocusedBorderColor = Color.Gray,
-                    focusedBorderColor = Color(0xFF8B0000) // Color del borde al tener el foco
-                ),
-                placeholder = {
-                    Text("Describe el reporte a detalle del porque estas reportando.") // Texto de ayuda
-                },
-                shape = RoundedCornerShape(8.dp) // Bordes redondeados
-            )
-
-            // Botón de enviar reporte
-            Button(
-                onClick = {
-                    viewModel.sendReport(categoria, authViewModel) // Enviar reporte al ViewModel
-                },
-                modifier = Modifier
-                    .fillMaxWidth() // Ancho completo
-                    .padding(vertical = 16.dp), // Padding vertical
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF8B0000) // Color del fondo del botón
-                ),
-                shape = RoundedCornerShape(24.dp), // Bordes redondeados
-                enabled = !viewModel.isLoading // Deshabilitar botón si se está cargando
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (viewModel.isLoading) {
-                    CircularProgressIndicator(
-                        color = Color.White, // Indicador de progreso blanco
-                        modifier = Modifier.size(24.dp) // Tamaño del indicador
-                    )
-                } else {
+                Text(
+                    text = "Adjuntar evidencia del reporte",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark
+                )
+
+                Text(
+                    text = "Foto",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFE0E0E0))
+                        .clickable {
+                            if (cameraPermissionState.status.isGranted) {
+                                handlePhotoCapture()
+                            } else {
+                                cameraPermissionState.launchPermissionRequest()
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (viewModel.hasPhoto && viewModel.photoUri != null) {
+                        AsyncImage(
+                            model = viewModel.photoUri,
+                            contentDescription = "Foto capturada",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(id = R.drawable.iconocamara),
+                            contentDescription = "Tomar foto",
+                            modifier = Modifier.size(96.dp),
+                            tint = if (isDarkTheme) TextPrimary else PrimaryDark
+                        )
+                    }
+                }
+
+                Text(
+                    text = "¿Dónde se encuentra ubicado ${getArticulo(categoria)}${categoria.lowercase()}?",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+
+                Text(
+                    text = "Dirección",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+
+                OutlinedTextField(
+                    value = viewModel.direccion,
+                    onValueChange = { },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        unfocusedBorderColor = if (isDarkTheme) Secondary else Secondary,
+                        focusedBorderColor = if (isDarkTheme) Primary else Primary,
+                        unfocusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                        focusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark
+                    ),
+                    placeholder = {
+                        Text(
+                            "Ubicación del maps ejemplo Othon P.Blanco 123, Bosque, Ciudad chetumal Q.ROO",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (isDarkTheme) TextSecondary else PrimaryDark
+                        )
+                    },
+                    readOnly = true,
+                    shape = RoundedCornerShape(8.dp)
+                )
+
+                Button(
+                    onClick = { viewModel.onMapClick() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Primary,
+                        contentColor = TextPrimary
+                    ),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
                     Text(
-                        text = "Enviar reporte", // Texto del botón
-                        color = Color.White,
-                        modifier = Modifier.padding(vertical = 8.dp) // Padding vertical
+                        text = "Buscar ubicación en el mapa",
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp)) // Espacio en blanco al final
+                Text(
+                    text = "¿Por qué deseas reportar?",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+
+                Text(
+                    text = "Comentario",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+
+                OutlinedTextField(
+                    value = viewModel.comentario,
+                    onValueChange = { viewModel.onComentarioChange(it) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        unfocusedBorderColor = if (isDarkTheme) Secondary else Secondary,
+                        focusedBorderColor = if (isDarkTheme) Primary else Primary,
+                        unfocusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                        focusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark
+                    ),
+                    placeholder = {
+                        Text(
+                            "Describe el reporte a detalle del porque estas reportando.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (isDarkTheme) TextSecondary else PrimaryDark
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp)
+                )
+
+                Button(
+                    onClick = { viewModel.sendReport(categoria, authViewModel) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Primary,
+                        contentColor = TextPrimary,
+                        disabledContainerColor = Secondary
+                    ),
+                    shape = RoundedCornerShape(24.dp),
+                    enabled = !viewModel.isLoading
+                ) {
+                    if (viewModel.isLoading) {
+                        CircularProgressIndicator(
+                            color = TextPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else {
+                        Text(
+                            text = "Enviar reporte",
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
     }
 
-    // Diálogos de error
+    // Diálogos
     if (viewModel.showErrorDialog) {
         AlertDialog(
-            onDismissRequest = { viewModel.dismissErrorDialog() }, // Acción al cerrar el diálogo
-            title = { Text("Atención") }, // Título del diálogo
+            onDismissRequest = { viewModel.dismissErrorDialog() },
+            title = {
+                Text(
+                    "Atención",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark
+                )
+            },
             text = {
                 Text(
-                    text = viewModel.errorMessage ?: "", // Mensaje de error
-                    style = MaterialTheme.typography.bodyLarge
+                    text = viewModel.errorMessage ?: "",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark
                 )
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.dismissErrorDialog() }) { // Botón para aceptar el error
-                    Text("Aceptar")
+                Button(
+                    onClick = { viewModel.dismissErrorDialog() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Primary,
+                        contentColor = TextPrimary
+                    )
+                ) {
+                    Text(
+                        "Aceptar",
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
-            },
-            containerColor = MaterialTheme.colorScheme.surface, // Color de fondo del diálogo
-            titleContentColor = MaterialTheme.colorScheme.onSurface, // Color del título
-            textContentColor = MaterialTheme.colorScheme.onSurface // Color del texto
+            }
         )
     }
 
-    // Diálogo de éxito
     if (viewModel.reporteSent) {
         AlertDialog(
-            onDismissRequest = { }, // No hay acción al cerrar
+            onDismissRequest = { },
             title = {
                 Text(
-                    "¡Éxito!", // Título del diálogo
-                    style = MaterialTheme.typography.headlineSmall
+                    "¡Éxito!",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark
                 )
             },
             text = {
                 Text(
-                    "Tu reporte ha sido enviado correctamente", // Mensaje de éxito
-                    style = MaterialTheme.typography.bodyLarge
+                    "Tu reporte ha sido enviado correctamente",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark
                 )
             },
-            confirmButton = { }, // Sin botón de confirmación
-            containerColor = MaterialTheme.colorScheme.surface, // Color de fondo del diálogo
-            titleContentColor = MaterialTheme.colorScheme.onSurface, // Color del título
-            textContentColor = MaterialTheme.colorScheme.onSurface // Color del texto
+            confirmButton = { }
         )
 
-        LaunchedEffect(Unit) { // Efecto que se lanza al enviar el reporte
-            delay(1500L) // Esperar 1.5 segundos
-            navController.navigate("categorias") { // Navegar a la pantalla de categorías
-                popUpTo("categorias") { inclusive = true } // Limpiar la pila de navegación
+        LaunchedEffect(Unit) {
+            delay(1500L)
+            navController.navigate("categorias") {
+                popUpTo("categorias") { inclusive = true }
             }
         }
     }
 
-    // Diálogo del mapa
     if (viewModel.showMap) {
         AlertDialog(
-            onDismissRequest = { viewModel.onDismissMap() }, // Acción al cerrar el diálogo del mapa
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false // No usar el ancho predeterminado de la plataforma
-            ),
+            onDismissRequest = { viewModel.onDismissMap() },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
             modifier = Modifier
-                .fillMaxSize() // Llenar el espacio
-                .padding(16.dp), // Padding del diálogo
+                .fillMaxSize()
+                .padding(16.dp),
             content = {
                 MapScreen(
-                    onLocationSelected = { point, address -> // Acción al seleccionar una ubicación
-                        viewModel.onLocationSelected(point, address) // Enviar ubicación al ViewModel
+                    onLocationSelected = { point, address ->
+                        viewModel.onLocationSelected(point, address)
                     },
-                    onDismiss = { viewModel.onDismissMap() }, // Acción al cerrar el mapa
-                    initialLocation = viewModel.getChetumalCenter() // Ubicación inicial del mapa
+                    onDismiss = { viewModel.onDismissMap() },
+                    initialLocation = viewModel.getChetumalCenter()
                 )
             }
         )
