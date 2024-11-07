@@ -36,7 +36,7 @@
         <!--Provider de file_paths.xml-->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="com.example.lumviva.fileprovider"
+            android:authorities="com.example.lumvida.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

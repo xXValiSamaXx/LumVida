@@ -14,8 +14,6 @@ constraintlayoutCompose = "1.0.1"
 datastoreCoreAndroid = "1.1.1"
 datastorePreferencesCoreJvm = "1.1.1"
 firebaseAuthKtx = "23.0.0"
-firebaseCrashlyticsBuildtools = "3.0.2"
-runtimeLivedata = "1.7.4"
 firebaseFirestoreKtx = "25.1.1"
 volley = "1.2.1"
 
@@ -41,8 +39,6 @@ androidx-constraintlayout-compose = { group = "androidx.constraintlayout", name 
 androidx-datastore-core-android = { group = "androidx.datastore", name = "datastore-core-android", version.ref = "datastoreCoreAndroid" }
 androidx-datastore-preferences-core-jvm = { group = "androidx.datastore", name = "datastore-preferences-core-jvm", version.ref = "datastorePreferencesCoreJvm" }
 firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
-firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
-androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedata" }
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
 volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
 

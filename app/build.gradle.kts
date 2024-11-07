@@ -98,8 +98,6 @@ dependencies {
     implementation ("androidx.compose.material:material-icons-extended-android:1.6.1")
 
     implementation(libs.firebase.auth.ktx)
-    implementation(libs.firebase.crashlytics.buildtools)
-    implementation(libs.androidx.runtime.livedata)
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.volley)
     testImplementation(libs.junit)
