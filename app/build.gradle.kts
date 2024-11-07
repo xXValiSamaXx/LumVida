@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.lumviva"
+    namespace = "com.example.lumvida"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.lumviva"
+        applicationId = "com.example.lumvida"
         minSdk = 23
         //noinspection OldTargetApi
         targetSdk = 34
