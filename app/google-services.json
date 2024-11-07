@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:1052984801220:android:9751acfbe3cf6c7c665691",
         "android_client_info": {
-          "package_name": "com.example.lumviva"
+          "package_name": "com.example.lumvida"
         }
       },
       "oauth_client": [
@@ -17,7 +17,7 @@
           "client_id": "1052984801220-rd3cp2ianu4mk955sk9khsf7vdog3t8n.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.example.lumviva",
+            "package_name": "com.example.lumvida",
             "certificate_hash": "cba8dbef5c642e6d1f5c9a3ea90b4733aab678c9"
           }
         },
