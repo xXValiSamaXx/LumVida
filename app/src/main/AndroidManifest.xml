@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.example.lumvida">
     <uses-permission android:name="android.permission.INTERNET" />
     <!--Permisos cámara-->
     <uses-permission android:name="android.permission.CAMERA"/>
@@ -45,7 +46,7 @@
         </provider>
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.example.lumvida.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.LumViva">
             <intent-filter>

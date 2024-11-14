@@ -70,16 +70,16 @@ dependencies {
     implementation ("com.google.firebase:firebase-storage-ktx")
 
     //Dependencias para la API
-        // Retrofit para llamadas a la API
-        implementation ("com.squareup.retrofit2:retrofit:2.9.0")
-        implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
+    // Retrofit para llamadas a la API
+    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
 
-        // OkHttp para el cliente HTTP
-        implementation ("com.squareup.okhttp3:okhttp:4.9.3")
+    // OkHttp para el cliente HTTP
+    implementation ("com.squareup.okhttp3:okhttp:4.9.3")
 
-        // Corrutinas para operaciones asíncronas
-        implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
-        implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    // Corrutinas para operaciones asíncronas
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
 
     //Otras
     implementation(libs.androidx.material.icons.extended)
@@ -108,6 +108,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation ("androidx.compose.material:material-icons-extended-android:1.6.1")
+    implementation ("androidx.navigation:navigation-compose:2.7.1")
 
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.firestore.ktx)
