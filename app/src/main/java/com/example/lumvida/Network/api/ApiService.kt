@@ -8,8 +8,8 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 
 interface ApiService {
-    @POST("login")
-    suspend fun login(
+    @POST("api/NucleoDigital")
+    suspend fun getTiposInfraestructura(
         @Body loginRequest: LoginRequest,
         @Header("Authorization") token: String
     ): Response<InfraestructuraResponse>

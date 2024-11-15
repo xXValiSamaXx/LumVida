@@ -2,7 +2,8 @@ package com.example.lumvida.ui.Categorias.ui
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -13,51 +14,52 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import com.example.lumvida.R
+import com.example.lumvida.ui.theme.*
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 
 @Composable
 fun OptionButton(
     text: String,
     icon: ImageVector,
     onClick: () -> Unit,
+    isDarkTheme: Boolean,
     modifier: Modifier = Modifier
 ) {
-    // Botón personalizado que ejecuta una acción al hacer clic
     Button(
-        onClick = onClick, // Acción a ejecutar cuando se presiona el botón
+        onClick = onClick,
         modifier = modifier
-            .width(110.dp) // Define el ancho del botón
-            .height(100.dp), // Define la altura del botón
+            .width(160.dp)
+            .height(140.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Transparent // Hace que el fondo del botón sea transparente
+            containerColor = if (isDarkTheme) PrimaryDark.copy(alpha = 0.4f) else TextPrimary.copy(alpha = 0.4f)
         ),
-        contentPadding = PaddingValues(4.dp) // Define el padding del contenido dentro del botón
+        contentPadding = PaddingValues(4.dp)
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally, // Alineación horizontal centrada
-            verticalArrangement = Arrangement.Center // Alineación vertical centrada
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            // Ícono que se muestra en el botón
             Icon(
-                imageVector = icon, // Ícono proporcionado como parámetro
-                contentDescription = null, // Sin descripción para accesibilidad
-                tint = Color.White, // Color del ícono en blanco
-                modifier = Modifier.size(40.dp) // Tamaño del ícono
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isDarkTheme) TextPrimary else Primary,
+                modifier = Modifier.size(50.dp)
             )
-            Spacer(modifier = Modifier.height(4.dp)) // Espacio entre el ícono y el texto
-            // Texto que se muestra en el botón
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = text, // Texto proporcionado como parámetro
-                color = Color.White, // Color del texto en blanco
-                fontSize = 14.sp, // Tamaño de la fuente
-                textAlign = TextAlign.Center, // Texto centrado
-                maxLines = 2, // Máximo de líneas que puede ocupar el texto
-                lineHeight = 16.sp // Altura de línea del texto
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (isDarkTheme) TextPrimary else Primary,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
             )
         }
     }
@@ -69,43 +71,51 @@ fun CategoriasScreen(
     navController: NavController,
     viewModel: CategoriasViewModel
 ) {
-    // Controlador de la UI del sistema para cambiar el color de la barra de estado
+    val isDarkTheme = isSystemInDarkTheme()
     val systemUiController = rememberSystemUiController()
 
     SideEffect {
         systemUiController.setStatusBarColor(
-            color = Color.White, // Color de la barra de estado en blanco
-            darkIcons = true // Usa íconos oscuros en la barra de estado
+            color = if (isDarkTheme) PrimaryDark else TextPrimary,
+            darkIcons = !isDarkTheme
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize() // Hace que la columna ocupe todo el tamaño disponible
-            .background(Color(0xFF8B0000)) // Fondo rojo oscuro para la pantalla
-    ) {
-        Header(navController, viewModel) // Muestra el encabezado de la pantalla
+    Box(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = rememberAsyncImagePainter(
+                ImageRequest.Builder(LocalContext.current)
+                    .data(if (isDarkTheme) R.drawable.fondo_rojo else R.drawable.fondo_blanco)
+                    .build()
+            ),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.FillBounds
+        )
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize() // Box ocupa todo el espacio disponible
-                .padding(horizontal = 24.dp), // Espacio horizontal de 24.dp
-            contentAlignment = Alignment.Center // Centra el contenido dentro del Box
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally, // Alinea el contenido en el centro
-                verticalArrangement = Arrangement.spacedBy(48.dp) // Espacio de 48.dp entre los elementos
+        Column(modifier = Modifier.fillMaxSize()) {
+            HeaderSection(navController, viewModel, isDarkTheme)
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.Center
             ) {
-                // Título principal de la pantalla
-                Text(
-                    text = "¿Qué deseas reportar?", // Texto que se muestra
-                    fontSize = 28.sp, // Tamaño de la fuente
-                    fontWeight = FontWeight.Bold, // Texto en negrita
-                    color = Color.White, // Texto de color blanco
-                    textAlign = TextAlign.Center // Texto centrado
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(48.dp),
+                    modifier = Modifier.offset(y = (-40).dp)
+                ) {
+                    Text(
+                        text = "¿Qué deseas reportar?",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = if (isDarkTheme) TextPrimary else Primary,
+                        textAlign = TextAlign.Center
+                    )
 
-                CategoriaGrid(navController, viewModel) // Muestra el grid de categorías
+                    CategoriaGrid(navController, viewModel, isDarkTheme)
+                }
             }
         }
     }
@@ -115,24 +125,24 @@ fun CategoriasScreen(
 @Composable
 private fun CategoriaGrid(
     navController: NavController,
-    viewModel: CategoriasViewModel
+    viewModel: CategoriasViewModel,
+    isDarkTheme: Boolean
 ) {
-    // Grid vertical que muestra una lista de categorías en un diseño de rejilla
     LazyVerticalGrid(
-        columns = GridCells.Fixed(3), // 3 columnas en la rejilla
-        horizontalArrangement = Arrangement.SpaceBetween, // Espacio entre columnas
-        verticalArrangement = Arrangement.spacedBy(40.dp), // Espacio entre filas de 40.dp
-        modifier = Modifier.fillMaxWidth() // El grid ocupa todo el ancho disponible
+        columns = GridCells.Fixed(2),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalArrangement = Arrangement.spacedBy(40.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        items(viewModel.categorias.size) { index -> // Recorre las categorías del ViewModel
-            val categoria = viewModel.categorias[index] // Obtiene la categoría actual
+        items(viewModel.categorias.size) { index ->
+            val categoria = viewModel.categorias[index]
             OptionButton(
-                text = categoria.titulo, // Texto del botón de categoría
-                icon = categoria.icono, // Ícono de la categoría
+                text = categoria.titulo,
+                icon = categoria.icono,
                 onClick = {
-                    // Navega a la pantalla de creación de reporte para la categoría seleccionada
                     viewModel.navigateToCrearReporte(navController, categoria)
-                }
+                },
+                isDarkTheme = isDarkTheme
             )
         }
     }
@@ -140,34 +150,36 @@ private fun CategoriaGrid(
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-private fun Header(
+private fun HeaderSection(
     navController: NavController,
-    viewModel: CategoriasViewModel
+    viewModel: CategoriasViewModel,
+    isDarkTheme: Boolean
 ) {
-    // Encabezado de la pantalla
-    Column(
-        modifier = Modifier
-            .fillMaxWidth() // El encabezado ocupa todo el ancho disponible
-            .background(Color.White) // Fondo blanco
-            .padding(vertical = 16.dp) // Espaciado vertical de 16.dp
-            .statusBarsPadding() // Alinea el contenido del encabezado debajo de la barra de estado
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = if (isDarkTheme) TextPrimary else Primary
     ) {
-        // Título del encabezado
-        Text(
-            text = "La Ciudad hoy", // Texto del título
-            modifier = Modifier.fillMaxWidth(), // Ocupa todo el ancho
-            textAlign = TextAlign.Center, // Centrado
-            fontSize = 18.sp, // Tamaño de fuente
-            color = Color.Black // Color negro para el texto
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp)
+                .statusBarsPadding()
+        ) {
+            Text(
+                text = "La Ciudad hoy",
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+                color = if (isDarkTheme) Primary else TextPrimary
+            )
 
-        // Fecha formateada desde el ViewModel
-        Text(
-            text = viewModel.formattedDate, // Fecha proporcionada por el ViewModel
-            modifier = Modifier.fillMaxWidth(), // Ocupa todo el ancho
-            textAlign = TextAlign.Center, // Centrado
-            fontSize = 16.sp, // Tamaño de fuente
-            color = Color.Gray // Texto de color gris
-        )
+            Text(
+                text = viewModel.formattedDate,
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = if (isDarkTheme) Primary else TextPrimary
+            )
+        }
     }
 }

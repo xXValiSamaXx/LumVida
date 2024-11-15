@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -35,22 +36,29 @@ import com.example.lumvida.ui.crearcuenta.CrearCuentaScreen
 import com.example.lumvida.ui.login.ui.LoginScreen
 import com.example.lumvida.ui.theme.LumVivaTheme
 import com.google.firebase.FirebaseApp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() { // Clase principal de la actividad que extiende ComponentActivity.
+class MainActivity : ComponentActivity() {
     private val authViewModel: AuthViewModel by viewModels() // Obtiene una instancia del ViewModel de autenticación.
 
-    @RequiresApi(Build.VERSION_CODES.O) // Requiere que la versión de la API sea O o superior.
-    override fun onCreate(savedInstanceState: Bundle?) { // Método que se llama al crear la actividad.
-        super.onCreate(savedInstanceState) // Llama al método de la clase base.
-        FirebaseApp.initializeApp(this) // Inicializa Firebase en la aplicación.
-        enableEdgeToEdge() // Habilita el modo de pantalla completa (Edge to Edge).
-        setContent { // Establece el contenido de la actividad utilizando Compose.
-            LumVivaTheme { // Aplica el tema de la aplicación.
-                Surface( // Crea una superficie para la interfaz de usuario.
-                    modifier = Modifier.fillMaxSize(), // Modificador para llenar todo el tamaño disponible.
-                    color = MaterialTheme.colorScheme.background // Color de fondo según el tema.
+    @RequiresApi(Build.VERSION_CODES.O)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Inicializar Firebase en un coroutine
+        lifecycleScope.launch(Dispatchers.IO) {
+            FirebaseApp.initializeApp(this@MainActivity)
+        }
+
+        enableEdgeToEdge()
+        setContent {
+            LumVivaTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
                 ) {
-                    LumVivaApp(authViewModel) // Llama a la función composable LumVivaApp.
+                    LumVivaApp(authViewModel)
                 }
             }
         }
