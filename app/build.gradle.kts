@@ -11,7 +11,6 @@ android {
     defaultConfig {
         applicationId = "com.example.lumvida"
         minSdk = 23
-        //noinspection OldTargetApi
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -52,38 +51,40 @@ android {
 }
 
 dependencies {
-    //Depedencias camara
-    implementation ("com.google.accompanist:accompanist-permissions:0.31.1-alpha")
+    // Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:32.6.0"))
+
+    // Firebase específicos
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
+
+    // Google Sign In
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+
+    // Corrutinas
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
+    // Cámara y permisos
+    implementation("com.google.accompanist:accompanist-permissions:0.31.1-alpha")
     implementation("io.coil-kt:coil-compose:2.5.0")
-    implementation ("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 
-    //Dependencias OpenStreetMap
-    implementation ("org.osmdroid:osmdroid-android:6.1.18")
-    implementation ("org.osmdroid:osmdroid-wms:6.1.16")
-    implementation ("org.osmdroid:osmdroid-mapsforge:6.1.16")
+    // OpenStreetMap
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
+    implementation("org.osmdroid:osmdroid-wms:6.1.16")
+    implementation("org.osmdroid:osmdroid-mapsforge:6.1.16")
 
-    //Dependencias Firebase con fireStore y Storage
-    implementation ("com.google.firebase:firebase-firestore-ktx:24.9.1")
-    implementation ("com.google.firebase:firebase-storage-ktx:20.3.0")
-    implementation ("com.google.firebase:firebase-bom:32.6.0")
-    implementation ("com.google.firebase:firebase-firestore-ktx")
-    implementation ("com.google.firebase:firebase-storage-ktx")
+    // Retrofit y networking
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 
-    //Dependencias para la API
-
-    // Retrofit
-    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
-
-    // OkHttp para el cliente HTTP
-    implementation ("com.squareup.okhttp3:okhttp:4.9.3")
-    implementation ("com.squareup.okhttp3:logging-interceptor:4.9.3")
-
-    // Corrutinas para operaciones asíncronas
-    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
-    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
-
-    //Otras
+    // AndroidX y Compose
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -95,26 +96,14 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.espresso.core)
     implementation(libs.androidx.constraintlayout.compose)
+
+    // DataStore
     implementation(libs.androidx.datastore.core.android)
     implementation(libs.androidx.datastore.preferences.core.jvm)
-
-    // Google Sign-In
-    implementation("com.google.android.gms:play-services-auth:20.7.0")
-    // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
-    // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
-    implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
-    implementation("com.google.firebase:firebase-analytics")
-    implementation ("androidx.compose.material:material-icons-extended-android:1.6.1")
-    implementation ("androidx.navigation:navigation-compose:2.7.1")
 
-    implementation(libs.firebase.auth.ktx)
-    implementation(libs.firebase.firestore.ktx)
-    implementation(libs.volley)
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

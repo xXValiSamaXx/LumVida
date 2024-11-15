@@ -68,33 +68,59 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // Actualizado para manejar la información adicional de Google
     fun loginWithGoogle(account: GoogleSignInAccount?) {
         viewModelScope.launch {
             try {
                 _authState.value = AuthState.Loading
+
+                // Validación más estricta de la cuenta
                 if (account == null) {
-                    throw Exception("Google Sign-In failed")
+                    _authState.value = AuthState.Error("No se pudo obtener la cuenta de Google")
+                    return@launch
                 }
+
+                if (account.idToken == null) {
+                    _authState.value = AuthState.Error("No se pudo obtener el token de autenticación")
+                    return@launch
+                }
+
+                // Crear credencial
                 val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-                val result = auth.signInWithCredential(credential).await()
-                result.user?.let { user ->
-                    val usuario = Usuario(
-                        uid = user.uid,
-                        email = user.email ?: "",
-                        nombre = account.displayName ?: "",
-                        provider = AuthProvider.GOOGLE,
-                        telefono = "", // Campo opcional para Google
-                        createdAt = System.currentTimeMillis()
-                    )
-                    db.collection("usuarios")
-                        .document(user.uid)
-                        .set(usuario)
-                        .await()
-                    _authState.value = AuthState.Authenticated(user)
-                } ?: throw Exception("No se pudo obtener información del usuario")
+
+                try {
+                    // Intentar autenticación con Firebase
+                    val result = auth.signInWithCredential(credential).await()
+
+                    result.user?.let { user ->
+                        // Verificar si el usuario ya existe
+                        val userDoc = db.collection("usuarios").document(user.uid).get().await()
+
+                        if (!userDoc.exists()) {
+                            // Crear nuevo usuario
+                            val usuario = Usuario(
+                                uid = user.uid,
+                                email = account.email ?: "",
+                                nombre = account.displayName ?: "",
+                                provider = AuthProvider.GOOGLE,
+                                telefono = "",
+                                createdAt = System.currentTimeMillis()
+                            )
+
+                            db.collection("usuarios")
+                                .document(user.uid)
+                                .set(usuario)
+                                .await()
+                        }
+
+                        _authState.value = AuthState.Authenticated(user)
+                    } ?: throw Exception("No se pudo obtener información del usuario")
+
+                } catch (e: Exception) {
+                    _authState.value = AuthState.Error("Error al autenticar con Firebase: ${e.message}")
+                }
+
             } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Error en el inicio de sesión con Google")
+                _authState.value = AuthState.Error("Error en el inicio de sesión con Google: ${e.message}")
             }
         }
     }

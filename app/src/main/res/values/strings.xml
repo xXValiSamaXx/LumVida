@@ -1,4 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">LumViva</string>
-    <string name="default_web_client_id" />
+    <string name="app_name">LumVida</string>
+    <string name="default_web_client_id">1052984801220-rd3cp2ianu4mk955sk9khsf7vdog3t8n.apps.googleusercontent.com</string>
 </resources>

@@ -7,9 +7,46 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1052984801220:android:9751acfbe3cf6c7c665691",
+        "mobilesdk_app_id": "1:1052984801220:android:1c3ac5f49bb9ef55665691",
         "android_client_info": {
           "package_name": "com.example.lumvida"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1052984801220-e8oflf2ih936n6hptbn5b401i6ickttq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.lumvida",
+            "certificate_hash": "cba8dbef5c642e6d1f5c9a3ea90b4733aab678c9"
+          }
+        },
+        {
+          "client_id": "1052984801220-e12lbu366jt33n7sn5ni4tfkcp566lg5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_sitGGMIJT0rDtKWuP18_lbEXQPC0cpk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1052984801220-e12lbu366jt33n7sn5ni4tfkcp566lg5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1052984801220:android:9751acfbe3cf6c7c665691",
+        "android_client_info": {
+          "package_name": "com.example.lumviva"
         }
       },
       "oauth_client": [
@@ -17,7 +54,7 @@
           "client_id": "1052984801220-rd3cp2ianu4mk955sk9khsf7vdog3t8n.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.example.lumvida",
+            "package_name": "com.example.lumviva",
             "certificate_hash": "cba8dbef5c642e6d1f5c9a3ea90b4733aab678c9"
           }
         },
