@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.ImeAction // Importa acciones IME para el 
 import androidx.compose.ui.text.input.KeyboardType // Importa tipos de teclado.
 import androidx.compose.ui.text.input.PasswordVisualTransformation // Importa transformación visual para contraseñas.
 import androidx.compose.ui.text.input.VisualTransformation // Importa transformación visual para textos.
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp // Importa la clase para manejar unidades de densidad.
 import androidx.lifecycle.viewmodel.compose.viewModel // Importa el método para obtener ViewModels en Compose.
 import androidx.navigation.NavController // Importa el controlador de navegación.
@@ -223,53 +224,70 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(16.dp)) // Espaciador vertical.
 
-            // Botón para recuperar contraseña.
-            TextButton(
-                onClick = { navController.navigate("recuperar_contrasena") }, // Navega a la pantalla de recuperación de contraseña.
-                colors = ButtonDefaults.textButtonColors( // Colores del botón.
-                    contentColor = if (isDarkTheme) TextPrimary else PrimaryDark // Color del contenido según el tema.
-                )
+            // Botón "¿Olvidaste tu contraseña?"
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("¿Olvidaste tu contraseña?") // Texto del botón.
-            }
-
-            Spacer(modifier = Modifier.height(32.dp)) // Espaciador vertical.
-
-            // Fila para la opción de registro.
-            Row(
-                verticalAlignment = Alignment.CenterVertically // Alinea verticalmente al centro.
-            ) {
-                Text(
-                    "¿No tienes una cuenta?", // Texto informativo.
-                    style = MaterialTheme.typography.bodyMedium, // Estilo del texto.
-                    color = if (isDarkTheme) TextPrimary else PrimaryDark // Color del texto según el tema.
-                )
                 TextButton(
-                    onClick = { navController.navigate("crear_cuenta") }, // Navega a la pantalla de creación de cuenta.
-                    colors = ButtonDefaults.textButtonColors( // Colores del botón.
-                        contentColor = Primary // Color del contenido.
-                    )
+                    onClick = {
+                        // Aseguramos que la navegación funcione
+                        navController.navigate("recuperar_contrasena") {
+                            launchSingleTop = true
+                        }
+                    }
                 ) {
-                    Text("Regístrate") // Texto del botón.
+                    Text(
+                        text = "¿Olvidaste tu contraseña?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isDarkTheme) TextPrimary else PrimaryDark
+                    )
                 }
             }
 
-            // Muestra el mensaje de error si existe.
+            // Botón "¿No tienes una cuenta?"
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                TextButton(
+                    onClick = {
+                        // Aseguramos que la navegación funcione
+                        navController.navigate("crear_cuenta") {
+                            launchSingleTop = true
+                        }
+                    }
+                ) {
+                    Text(
+                        text = "¿No tienes una cuenta? Regístrate",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isDarkTheme) TextPrimary else PrimaryDark
+                    )
+                }
+            }
+
+            // Mostrar mensaje de error si existe
             errorMessage?.let {
                 Text(
-                    text = it, // Mensaje de error.
-                    color = Color.Red, // Color del mensaje de error.
-                    modifier = Modifier.padding(top = 16.dp) // Añade un relleno superior.
+                    text = it,
+                    color = Color.Red,
+                    modifier = Modifier.padding(top = 16.dp),
+                    textAlign = TextAlign.Center
                 )
             }
 
-            // Indicador de carga si el estado de inicio de sesión es Loading.
+            // Indicador de carga
             if (loginState is LoginState.Loading) {
                 CircularProgressIndicator(
-                    modifier = Modifier.padding(top = 16.dp), // Añade un relleno superior.
-                    color = Primary // Color del indicador de carga.
+                    modifier = Modifier.padding(top = 16.dp),
+                    color = Primary
                 )
             }
+
         }
     }
 }

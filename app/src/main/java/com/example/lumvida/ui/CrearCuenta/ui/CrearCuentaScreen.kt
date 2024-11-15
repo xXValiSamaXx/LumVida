@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -377,27 +378,48 @@ fun CrearCuentaScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically
+            // Contenedor para el botón "¿Ya tienes una cuenta?"
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    "¿Ya tienes una cuenta?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isDarkTheme) TextPrimary else PrimaryDark
-                )
                 TextButton(
-                    onClick = { navController.navigate("login") },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = Primary
-                    )
+                    onClick = {
+                        navController.navigate("login") {
+                            popUpTo("crear_cuenta") { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
                 ) {
                     Text(
-                        "Inicia sesión",
-                        style = MaterialTheme.typography.labelLarge
+                        text = "¿Ya tienes una cuenta? Inicia sesión",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isDarkTheme) TextPrimary else PrimaryDark
                     )
                 }
+            }
+
+            // Mostrar errores si existen
+            if (crearCuentaState is CrearCuentaState.Error) {
+                Text(
+                    text = (crearCuentaState as CrearCuentaState.Error).message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Red,
+                    modifier = Modifier.padding(top = 16.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            // Indicador de carga
+            if (crearCuentaState is CrearCuentaState.Loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.padding(top = 16.dp),
+                    color = Primary
+                )
             }
         }
     }
