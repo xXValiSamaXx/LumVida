@@ -143,10 +143,12 @@ fun LumVivaApp(authViewModel: AuthViewModel) { // Función principal de la aplic
             )
         ) {
             val crearReporteViewModel: CrearReporteViewModel = viewModel() // Obtiene el ViewModel para crear reportes.
+            val categoriasViewModel: CategoriasViewModel = viewModel()
             CrearReporteScreen(
                 navController = navController,
                 viewModel = crearReporteViewModel, // Pasa el ViewModel de crear reportes.
                 authViewModel = authViewModel, // Pasa el ViewModel de autenticación.
+                categoriasViewModel = categoriasViewModel,
                 categoria = it.arguments?.getString("categoria") ?: "sin categoría" // Obtiene el argumento 'categoria'.
             )
         }

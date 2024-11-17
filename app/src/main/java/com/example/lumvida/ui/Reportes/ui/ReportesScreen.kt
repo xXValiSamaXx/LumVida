@@ -134,7 +134,7 @@ fun ReportesScreen(
                 Spacer(modifier = Modifier.height(16.dp)) // Espaciador.
 
                 Text(
-                    text = "Si has presenciado o experimentado un problema urbano, como alcantarillado obstruido, mal estado de las calles o situaciones de riesgo, puedes informarnos sobre lo ocurrido.",
+                    text = "Si has presenciado o experimentado un problema urbano, como alumbrado público, drenajes obstruidos, mal estado de las calles o situaciones de riesgo, puedes informarnos sobre lo ocurrido.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = if (isDarkTheme) TextPrimary else PrimaryDark,
                     textAlign = TextAlign.Center // Centra el texto.

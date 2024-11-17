@@ -1,5 +1,6 @@
 package com.example.lumvida.ui.CrearReporte.ui
 
+import MapScreen
 import android.Manifest
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -35,6 +36,7 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import java.io.File
 import androidx.core.content.FileProvider
+import com.example.lumvida.ui.Categorias.ui.CategoriasViewModel
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +44,7 @@ fun CrearReporteScreen(
     navController: NavController,
     viewModel: CrearReporteViewModel,
     authViewModel: AuthViewModel,
+    categoriasViewModel: CategoriasViewModel,
     categoria: String = "nombre de la selección",
     isDarkTheme: Boolean = isSystemInDarkTheme()
 ) {
@@ -93,7 +96,9 @@ fun CrearReporteScreen(
     @Composable
     fun getArticulo(categoria: String): String {
         return when (categoria.lowercase()) {
-            "luminaria" -> "la "
+            "bacheo" -> "el bache"
+            "drenajes obstruidos" -> "el drenaje obstruido"
+            "basura acumulada" -> "la "
             else -> "el "
         }
     }
@@ -175,7 +180,10 @@ fun CrearReporteScreen(
                 }
 
                 Text(
-                    text = "¿Dónde se encuentra ubicado ${getArticulo(categoria)}${categoria.lowercase()}?",
+                    text = "¿Dónde se encuentra ubicado " +
+                        (if (getArticulo(categoria).length > 3)
+                        getArticulo(categoria)
+                    else getArticulo(categoria) + categoria.lowercase()) + "?",
                     style = MaterialTheme.typography.titleLarge,
                     color = if (isDarkTheme) TextPrimary else PrimaryDark,
                     modifier = Modifier.padding(top = 16.dp)
@@ -371,7 +379,8 @@ fun CrearReporteScreen(
                         viewModel.onLocationSelected(point, address)
                     },
                     onDismiss = { viewModel.onDismissMap() },
-                    initialLocation = viewModel.getChetumalCenter()
+                    initialLocation = viewModel.getChetumalCenter(),
+                    categoriasViewModel = categoriasViewModel
                 )
             }
         )

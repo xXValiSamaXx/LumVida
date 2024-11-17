@@ -53,7 +53,7 @@ fun InicioScreen(
 
             // Description text
             Text(
-                text = "LumViva es una app que permite reportar problemas urbanos como baches o fallas en el alumbrado, directamente desde tu móvil. Conecta a los ciudadanos con las autoridades para soluciones rápidas y eficaces. ¡Haz tu ciudad mejor con LumViva!",
+                text = "LumVida es una app que permite reportar problemas urbanos como baches, basura acumulada, drenajes obstruidos o fallas en el alumbrado público, directamente desde tu móvil. Conecta a los ciudadanos con las autoridades para soluciones rápidas y eficaces. ¡Haz tu ciudad mejor con LumVida!",
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(vertical = 16.dp),

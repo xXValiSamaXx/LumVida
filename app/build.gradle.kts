@@ -84,6 +84,9 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 
+    //Material 3
+    implementation ("androidx.compose.material3:material3:1.1.2")
+
     // AndroidX y Compose
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.core.ktx)
