@@ -1,0 +1,43 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Ondas WiFi -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M1,9 C3.5,6.5 7.5,5 12,5 C16.5,5 20.5,6.5 23,9"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"/>
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,12 C6,10 9,9 12,9 C15,9 18,10 20,12"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"/>
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M7,15 C8.5,14 10.5,13.5 12,13.5 C13.5,13.5 15.5,14 17,15"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"/>
+
+    <!-- Punto central -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,18 C12.8,18 13.5,18.7 13.5,19.5 C13.5,20.3 12.8,21 12,21 C11.2,21 10.5,20.3 10.5,19.5 C10.5,18.7 11.2,18 12,18"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"/>
+
+    <!-- Línea diagonal (barra de prohibición) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M5,5 L19,19"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"/>
+</vector>

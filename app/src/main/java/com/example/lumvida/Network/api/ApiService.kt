@@ -1,8 +1,9 @@
 package com.example.lumvida.network.api
 
-import com.example.lumvida.Network.model.NominatimResponse
+import com.example.lumvida.network.model.NominatimResponse
 import com.example.lumvida.network.model.LoginRequest
 import com.example.lumvida.network.model.InfraestructuraResponse
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -24,4 +25,9 @@ interface ApiService {
         @Query("addressdetails") addressDetails: Int = 1,
         @Query("limit") limit: Int = 5
     ): List<NominatimResponse>
+
+    @GET("https://overpass-api.de/api/interpreter")
+    suspend fun getStreetGeometry(
+        @Query("data") query: String
+    ): ResponseBody
 }

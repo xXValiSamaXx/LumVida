@@ -67,6 +67,21 @@ object RetrofitClient {
         .addConverterFactory(GsonConverterFactory.create(gson))
         .build()
 
+    private val overpassHttpClient = OkHttpClient.Builder()
+        .addInterceptor(loggingInterceptor)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
+
+    private val overpassRetrofit = Retrofit.Builder()
+        .baseUrl("https://overpass-api.de/")
+        .client(overpassHttpClient)
+        .addConverterFactory(GsonConverterFactory.create(gson))
+        .build()
+
+    val overpassService: ApiService = overpassRetrofit.create(ApiService::class.java)
+
     val apiService: ApiService = apiRetrofit.create(ApiService::class.java)
     val nominatimService: ApiService = nominatimRetrofit.create(ApiService::class.java)
 }

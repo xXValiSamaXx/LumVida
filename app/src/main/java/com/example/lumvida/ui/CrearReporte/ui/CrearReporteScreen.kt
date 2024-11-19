@@ -1,6 +1,5 @@
 package com.example.lumvida.ui.CrearReporte.ui
 
-import MapScreen
 import android.Manifest
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -37,6 +36,7 @@ import kotlinx.coroutines.delay
 import java.io.File
 import androidx.core.content.FileProvider
 import com.example.lumvida.ui.Categorias.ui.CategoriasViewModel
+import com.example.lumviva.ui.CrearReporte.ui.MapScreen
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -380,7 +380,8 @@ fun CrearReporteScreen(
                     },
                     onDismiss = { viewModel.onDismissMap() },
                     initialLocation = viewModel.getChetumalCenter(),
-                    categoriasViewModel = categoriasViewModel
+                    categoriasViewModel = categoriasViewModel,
+                    viewModel = viewModel
                 )
             }
         )

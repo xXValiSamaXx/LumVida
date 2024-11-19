@@ -1,4 +1,4 @@
-package com.example.lumvida.Network.model
+package com.example.lumvida.network.model
 
 import com.google.gson.annotations.SerializedName
 
@@ -10,7 +10,7 @@ data class NominatimResponse(
     @SerializedName("lon")
     val lon: String,
     @SerializedName("display_name")
-    val display_name: String,
+    val displayName: String,
     @SerializedName("type")
     val type: String,
     @SerializedName("importance")

@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lumvida.ui.Auth.ui.AuthState
 import com.example.lumvida.ui.Auth.ui.AuthViewModel
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
@@ -214,5 +215,110 @@ class CrearReporteViewModel : ViewModel() {
             showError("Error al enviar el reporte: ${e.message}") // Mostrar mensaje de error
             isLoading = false // Cambiar estado de carga
         }
+    }
+
+    data class ReporteMap(
+        val id: String,
+        val categoria: String,
+        val latitud: Double,
+        val longitud: Double,
+        val estado: String,
+        val direccion: String,
+        val foto: String,
+        val comentario: String,
+        val fecha: com.google.firebase.Timestamp
+    )
+
+    var reportes by mutableStateOf<List<ReporteMap>>(emptyList())
+        private set
+
+    // Cambiamos la forma de manejar la categoría seleccionada
+    private var _selectedCategory = mutableStateOf<String?>(null)
+    val selectedCategory: String? get() = _selectedCategory.value
+
+    // Lista filtrada de reportes
+    private var _filteredReportes = mutableStateOf<List<ReporteMap>>(emptyList())
+    val filteredReportes: List<ReporteMap> get() = _filteredReportes.value
+
+    // Función para establecer la categoría seleccionada y filtrar reportes
+    fun updateSelectedCategory(categoria: String?) {
+        _selectedCategory.value = categoria
+        filterReportes()
+    }
+
+    // Función para filtrar reportes
+    private fun filterReportes() {
+        _filteredReportes.value = if (_selectedCategory.value == null) {
+            reportes
+        } else {
+            reportes.filter { it.categoria.equals(_selectedCategory.value, ignoreCase = true) }
+        }
+    }
+
+    fun obtenerReportes() = viewModelScope.launch {
+        try {
+            val reportesSnapshot = firestore.collection("reportes").get().await()
+            reportes = reportesSnapshot.documents.mapNotNull { doc ->
+                val ubicacion = doc.get("ubicacion") as? Map<*, *>
+                val latitud = (ubicacion?.get("latitud") as? Double) ?: return@mapNotNull null
+                val longitud = (ubicacion?.get("longitud") as? Double) ?: return@mapNotNull null
+
+                ReporteMap(
+                    id = doc.id,
+                    categoria = doc.getString("categoria") ?: "",
+                    latitud = latitud,
+                    longitud = longitud,
+                    estado = doc.getString("estado") ?: "",
+                    direccion = doc.getString("direccion") ?: "",
+                    foto = doc.getString("foto") ?: "",
+                    comentario = doc.getString("comentario") ?: "",
+                    fecha = doc.getTimestamp("fecha") ?: com.google.firebase.Timestamp.now()
+                )
+            }
+            // Actualizar también los reportes filtrados
+            filterReportes()
+        } catch (e: Exception) {
+            Log.e("CrearReporteViewModel", "Error obteniendo reportes", e)
+        }
+    }
+
+    private var reportesListener: ListenerRegistration? = null
+
+    fun iniciarEscuchaReportes() {
+        reportesListener = firestore.collection("reportes")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("CrearReporteViewModel", "Error escuchando reportes", error)
+                    return@addSnapshotListener
+                }
+
+                snapshot?.let { querySnapshot ->
+                    reportes = querySnapshot.documents.mapNotNull { doc ->
+                        val ubicacion = doc.get("ubicacion") as? Map<*, *>
+                        val latitud = (ubicacion?.get("latitud") as? Double) ?: return@mapNotNull null
+                        val longitud = (ubicacion?.get("longitud") as? Double) ?: return@mapNotNull null
+
+                        ReporteMap(
+                            id = doc.id,
+                            categoria = doc.getString("categoria") ?: "",
+                            latitud = latitud,
+                            longitud = longitud,
+                            estado = doc.getString("estado") ?: "",
+                            direccion = doc.getString("direccion") ?: "",
+                            foto = doc.getString("foto") ?: "",
+                            comentario = doc.getString("comentario") ?: "",
+                            fecha = doc.getTimestamp("fecha") ?: com.google.firebase.Timestamp.now()
+                        )
+                    }
+                    // Actualizar reportes filtrados después de cada actualización
+                    filterReportes()
+                }
+            }
+    }
+
+    // limpiar el listener
+    override fun onCleared() {
+        super.onCleared()
+        reportesListener?.remove()
     }
 }
