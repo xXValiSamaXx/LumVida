@@ -272,7 +272,7 @@ fun CrearReporteScreen(
                 )
 
                 Button(
-                    onClick = { viewModel.sendReport(categoria, authViewModel) },
+                    onClick = { viewModel.sendReport(categoria, authViewModel, context) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 16.dp),

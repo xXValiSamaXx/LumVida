@@ -1,6 +1,10 @@
 package com.example.lumvida.ui.CrearReporte.ui
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Base64
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,9 +17,12 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import org.osmdroid.util.GeoPoint
+import java.io.ByteArrayOutputStream
 import java.util.UUID
 
 // Clase ViewModel para crear un reporte
@@ -154,66 +161,142 @@ class CrearReporteViewModel : ViewModel() {
         return true // Retornar true si todos los campos son válidos
     }
 
-    // Función para enviar el reporte
-    fun sendReport(categoria: String, authViewModel: AuthViewModel) = viewModelScope.launch {
+    // Función para optimizar el bitmap
+    private fun optimizeBitmap(bitmap: Bitmap): Bitmap {
+        val maxDimension = 1024
+
+        // Calcular las nuevas dimensiones manteniendo el aspect ratio
+        val ratio = maxDimension.toFloat() / Math.max(bitmap.width, bitmap.height)
+        val newWidth = (bitmap.width * ratio).toInt()
+        val newHeight = (bitmap.height * ratio).toInt()
+
+        // Retornar el bitmap original si ya es más pequeño
+        if (ratio >= 1) return bitmap
+
+        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+    }
+
+    // Función para convertir Url a Base64 con optimizaciones
+    private suspend fun convertImageToBase64(context: Context, uri: Uri): String = withContext(Dispatchers.IO) {
         try {
-            if (!validateFields()) return@launch // Validar campos antes de continuar
+            // 1. Leer la imagen y obtener sus dimensiones originales
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            BitmapFactory.decodeStream(inputStream, null, options)
+            inputStream?.close()
 
-            isLoading = true // Indicar que se está cargando
-            errorMessage = null // Limpiar mensaje de error
-            Log.d("CrearReporteViewModel", "Iniciando envío de reporte para categoría: $categoria") // Log de envío
+            // 2. Calcular el factor de escala inicial
+            val maxDimension = 1024
+            var scale = 1
+            while ((options.outWidth / scale > maxDimension) ||
+                (options.outHeight / scale > maxDimension)) {
+                scale *= 2
+            }
 
-            // Obtener userId (puede ser anónimo o autenticado)
+            // 3. Cargar la imagen con el factor de escala calculado
+            val scaledOptions = BitmapFactory.Options().apply {
+                inSampleSize = scale
+            }
+            val scaledInputStream = context.contentResolver.openInputStream(uri)
+            var bitmap = BitmapFactory.decodeStream(scaledInputStream, null, scaledOptions)
+            scaledInputStream?.close()
+
+            if (bitmap == null) throw Exception("No se pudo cargar la imagen")
+
+            // 4. Optimizar el bitmap si aún es necesario
+            bitmap = optimizeBitmap(bitmap)
+
+            // 5. Comprimir la imagen
+            val outputStream = ByteArrayOutputStream()
+
+            // Intentar primero con calidad 70%
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream)
+
+            // Si el tamaño es muy grande, comprimir más
+            var compressQuality = 70
+            while (outputStream.size() > 750000 && compressQuality > 10) { // 750KB límite seguro
+                outputStream.reset() // Limpiar el stream
+                compressQuality -= 10 // Reducir calidad en intervalos de 10
+                bitmap.compress(Bitmap.CompressFormat.JPEG, compressQuality, outputStream)
+                Log.d("CrearReporteViewModel",
+                    "Recomprimiendo imagen con calidad: $compressQuality%, " +
+                            "Tamaño: ${outputStream.size() / 1024}KB")
+            }
+
+            // 6. Convertir a base64
+            val imageBytes = outputStream.toByteArray()
+            val base64String = Base64.encodeToString(imageBytes, Base64.DEFAULT)
+
+            // 7. Logging para monitoreo
+            Log.d("CrearReporteViewModel", """
+                Imagen procesada:
+                - Dimensiones originales: ${options.outWidth}x${options.outHeight}
+                - Dimensiones finales: ${bitmap.width}x${bitmap.height}
+                - Calidad final: $compressQuality%
+                - Tamaño final: ${outputStream.size() / 1024}KB
+            """.trimIndent())
+
+            // 8. Limpiar recursos
+            outputStream.close()
+            bitmap.recycle()
+
+            // 9. Retornar el string base64 con el prefijo correcto
+            "data:image/jpeg;base64,$base64String"
+
+        } catch (e: Exception) {
+            Log.e("CrearReporteViewModel", "Error al convertir imagen a base64", e)
+            throw e
+        }
+    }
+
+    // Modificar la función sendReport para usar la nueva conversión
+    fun sendReport(categoria: String, authViewModel: AuthViewModel, context: Context) = viewModelScope.launch {
+        try {
+            if (!validateFields()) return@launch
+
+            isLoading = true
+            errorMessage = null
+
             val userId = when (val state = authViewModel.authState.value) {
-                is AuthState.Authenticated -> state.user.uid // Obtener ID del usuario autenticado
-                else -> "anonymous"  // Usuario anónimo
+                is AuthState.Authenticated -> state.user.uid
+                else -> "anonymous"
             }
 
-            // Subir foto
-            val photoId = UUID.randomUUID().toString() // Generar ID único para la foto
-            val photoRef = storage.child("reportes/${photoId}.jpg") // Referencia en Firebase Storage
-            Log.d("CrearReporteViewModel", "Subiendo foto con ID: $photoId") // Log de subida de foto
+            // Convertir imagen a base64 con las nuevas optimizaciones
+            val imageBase64 = photoUri?.let { uri ->
+                convertImageToBase64(context, uri)
+            } ?: throw Exception("No se encontró la imagen")
 
-            photoUri?.let { uri -> // Verificar que el URI de la foto no sea nulo
-                photoRef.putFile(uri).await() // Subir foto
-                Log.d("CrearReporteViewModel", "Foto subida exitosamente") // Log de éxito
-            }
-
-            // Obtener URL de la foto
-            val photoUrl = photoRef.downloadUrl.await().toString() // Obtener URL de descarga de la foto
-            Log.d("CrearReporteViewModel", "URL de la foto: $photoUrl") // Log de URL de la foto
-
-            // Crear documento del reporte
+            // Crear el documento del reporte con la imagen en base64
             val reporte = hashMapOf(
-                "userId" to userId, // ID del usuario
-                "isAnonymous" to (userId == "anonymous"),  // Indicador si es anónimo
-                "categoria" to categoria, // Categoría del reporte
-                "foto" to photoUrl, // URL de la foto
-                "direccion" to direccion, // Dirección del reporte
-                "comentario" to comentario, // Comentario del reporte
-                "fecha" to com.google.firebase.Timestamp.now(), // Fecha actual
-                "estado" to "pendiente", // Estado del reporte
-                "ubicacion" to hashMapOf( // Ubicación del reporte
+                "userId" to userId,
+                "isAnonymous" to (userId == "anonymous"),
+                "categoria" to categoria,
+                "foto" to imageBase64,
+                "direccion" to direccion,
+                "comentario" to comentario,
+                "fecha" to com.google.firebase.Timestamp.now(),
+                "estado" to "pendiente",
+                "ubicacion" to hashMapOf(
                     "latitud" to selectedLocation?.latitude,
                     "longitud" to selectedLocation?.longitude
                 )
             )
 
             // Guardar en Firestore
-            firestore.collection("reportes") // Referencia a la colección "reportes"
-                .add(reporte) // Agregar el reporte
-                .await() // Esperar a que se complete
+            firestore.collection("reportes")
+                .add(reporte)
+                .await()
 
-            Log.d("CrearReporteViewModel", "Reporte guardado exitosamente") // Log de éxito
-            Log.d("CrearReporteViewModel", "Datos del reporte: $reporte") // Log de datos del reporte
-
-            reporteSent = true // Indicar que el reporte fue enviado
-            isLoading = false // Cambiar estado de carga
+            reporteSent = true
+            isLoading = false
 
         } catch (e: Exception) {
-            Log.e("CrearReporteViewModel", "Error al enviar reporte", e) // Log de error
-            showError("Error al enviar el reporte: ${e.message}") // Mostrar mensaje de error
-            isLoading = false // Cambiar estado de carga
+            Log.e("CrearReporteViewModel", "Error al enviar reporte", e)
+            showError("Error al enviar el reporte: ${e.message}")
+            isLoading = false
         }
     }
 
