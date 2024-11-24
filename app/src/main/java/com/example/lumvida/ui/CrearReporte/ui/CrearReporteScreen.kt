@@ -36,7 +36,8 @@ import kotlinx.coroutines.delay
 import java.io.File
 import androidx.core.content.FileProvider
 import com.example.lumvida.ui.Categorias.ui.CategoriasViewModel
-import com.example.lumviva.ui.CrearReporte.ui.MapScreen
+import com.example.lumvida.ui.Reportes.ui.MapScreen
+import org.osmdroid.util.GeoPoint
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -51,11 +52,16 @@ fun CrearReporteScreen(
     val context = LocalContext.current
     val systemUiController = rememberSystemUiController()
     var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var showImagePickerDialog by remember { mutableStateOf(false) }
 
-    // Permisos de cámara
-    val cameraPermissionState = rememberPermissionState(
-        Manifest.permission.CAMERA
-    )
+    // Launcher para la galería
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            viewModel.onPhotoCaptured(it)
+        }
+    }
 
     // Preparar URI para la foto
     val getNewPhotoUri = {
@@ -92,6 +98,66 @@ fun CrearReporteScreen(
         }
     }
 
+    // Diálogo de selección de imagen
+    if (showImagePickerDialog) {
+        AlertDialog(
+            onDismissRequest = { showImagePickerDialog = false },
+            title = {
+                Text(
+                    "Seleccionar imagen",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark
+                )
+            },
+            text = {
+                Column {
+                    Button(
+                        onClick = {
+                            showImagePickerDialog = false
+                            handlePhotoCapture()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Primary,
+                            contentColor = TextPrimary
+                        )
+                    ) {
+                        Text("Tomar foto con la cámara")
+                    }
+
+                    Button(
+                        onClick = {
+                            showImagePickerDialog = false
+                            imagePickerLauncher.launch("image/*")
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Primary,
+                            contentColor = TextPrimary
+                        )
+                    ) {
+                        Text("Seleccionar de la galería")
+                    }
+                }
+            },
+            confirmButton = { },
+            dismissButton = {
+                TextButton(
+                    onClick = { showImagePickerDialog = false },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = if (isDarkTheme) TextPrimary else PrimaryDark
+                    )
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     // Función para obtener artículo basado en la categoría
     @Composable
     fun getArticulo(categoria: String): String {
@@ -103,7 +169,6 @@ fun CrearReporteScreen(
         }
     }
 
-    // Aplicamos BackgroundContainer del tema
     BackgroundContainer(isDarkTheme = isDarkTheme) {
         Column(
             modifier = Modifier
@@ -153,13 +218,7 @@ fun CrearReporteScreen(
                         .height(200.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(Color(0xFFE0E0E0))
-                        .clickable {
-                            if (cameraPermissionState.status.isGranted) {
-                                handlePhotoCapture()
-                            } else {
-                                cameraPermissionState.launchPermissionRequest()
-                            }
-                        },
+                        .clickable { showImagePickerDialog = true },
                     contentAlignment = Alignment.Center
                 ) {
                     if (viewModel.hasPhoto && viewModel.photoUri != null) {
@@ -181,9 +240,9 @@ fun CrearReporteScreen(
 
                 Text(
                     text = "¿Dónde se encuentra ubicado " +
-                        (if (getArticulo(categoria).length > 3)
-                        getArticulo(categoria)
-                    else getArticulo(categoria) + categoria.lowercase()) + "?",
+                            (if (getArticulo(categoria).length > 3)
+                                getArticulo(categoria)
+                            else getArticulo(categoria) + categoria.lowercase()) + "?",
                     style = MaterialTheme.typography.titleLarge,
                     color = if (isDarkTheme) TextPrimary else PrimaryDark,
                     modifier = Modifier.padding(top = 16.dp)
@@ -209,8 +268,9 @@ fun CrearReporteScreen(
                     placeholder = {
                         Text(
                             "Ubicación del maps ejemplo Othon P.Blanco 123, Bosque, Ciudad chetumal Q.ROO",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (isDarkTheme) TextSecondary else PrimaryDark
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = if (isDarkTheme) TextPrimary else PrimaryDark
+                            )
                         )
                     },
                     readOnly = true,
@@ -264,8 +324,9 @@ fun CrearReporteScreen(
                     placeholder = {
                         Text(
                             "Describe el reporte a detalle del porque estas reportando.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (isDarkTheme) TextSecondary else PrimaryDark
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = if (isDarkTheme) TextPrimary else PrimaryDark
+                            )
                         )
                     },
                     shape = RoundedCornerShape(8.dp)
@@ -367,23 +428,11 @@ fun CrearReporteScreen(
     }
 
     if (viewModel.showMap) {
-        AlertDialog(
-            onDismissRequest = { viewModel.onDismissMap() },
-            properties = DialogProperties(usePlatformDefaultWidth = false),
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            content = {
-                MapScreen(
-                    onLocationSelected = { point, address ->
-                        viewModel.onLocationSelected(point, address)
-                    },
-                    onDismiss = { viewModel.onDismissMap() },
-                    initialLocation = viewModel.getChetumalCenter(),
-                    categoriasViewModel = categoriasViewModel,
-                    viewModel = viewModel
-                )
-            }
+        MapaReporte(
+            onLocationSelected = { point, address ->
+                viewModel.onLocationSelected(point, address)
+            },
+            onDismiss = { viewModel.onDismissMap() }
         )
     }
 }

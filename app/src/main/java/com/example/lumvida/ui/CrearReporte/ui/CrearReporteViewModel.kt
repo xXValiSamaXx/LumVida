@@ -10,14 +10,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.lumvida.data.db.RecentSearchEntity
+import com.example.lumvida.data.model.RecentSearch
+import com.example.lumvida.data.repository.SearchHistoryRepository
+import com.example.lumvida.network.model.NominatimResponse
 import com.example.lumvida.ui.Auth.ui.AuthState
 import com.example.lumvida.ui.Auth.ui.AuthViewModel
+import com.example.lumvida.utils.NetworkUtils
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -25,161 +35,206 @@ import org.osmdroid.util.GeoPoint
 import java.io.ByteArrayOutputStream
 import java.util.UUID
 
-// Clase ViewModel para crear un reporte
-class CrearReporteViewModel : ViewModel() {
-    // Referencias a Firestore y Storage de Firebase
+class CrearReporteViewModel(
+    private val searchHistoryRepository: SearchHistoryRepository? = null
+) : ViewModel() {
     private val firestore = Firebase.firestore
     private val storage = Firebase.storage.reference
 
-    // Propiedades observables del ViewModel
-    var photoUri: Uri? by mutableStateOf(null) // URI de la foto capturada
+    var photoUri: Uri? by mutableStateOf(null)
         private set
 
-    var showCamera by mutableStateOf(false) // Estado de la cámara
+    var showCamera by mutableStateOf(false)
         private set
 
-    var hasPhoto by mutableStateOf(false) // Indicador de si se ha capturado una foto
+    var hasPhoto by mutableStateOf(false)
         private set
 
-    var showMap by mutableStateOf(false) // Estado del mapa
+    var showMap by mutableStateOf(false)
         private set
 
-    var selectedLocation by mutableStateOf<GeoPoint?>(null) // Ubicación seleccionada
+    var selectedLocation by mutableStateOf<GeoPoint?>(null)
         private set
 
-    var direccion by mutableStateOf("") // Dirección del reporte
+    var direccion by mutableStateOf("")
         private set
 
-    var comentario by mutableStateOf("") // Comentario del reporte
+    var comentario by mutableStateOf("")
         private set
 
-    var showErrorDialog by mutableStateOf(false) // Estado del diálogo de error
+    var showErrorDialog by mutableStateOf(false)
         private set
 
-    var errorMessage by mutableStateOf<String?>(null) // Mensaje de error
+    var errorMessage by mutableStateOf<String?>(null)
         private set
 
-    var isLoading by mutableStateOf(false) // Estado de carga
+    var isLoading by mutableStateOf(false)
         private set
 
-    var reporteSent by mutableStateOf(false) // Indicador de si el reporte fue enviado
+    var reporteSent by mutableStateOf(false)
         private set
 
-    // Centro de Chetumal (coordenadas geográficas)
     private val chetumalCenter = GeoPoint(18.5001889, -88.296146)
 
-    // Función para mostrar un error
+    // Añade las nuevas propiedades y funciones para el historial de búsquedas
+    val recentSearches = searchHistoryRepository?.recentSearches
+        ?.map { entities ->
+            entities.map { entity ->
+                RecentSearch(
+                    name = entity.name,
+                    address = entity.address,
+                    timestamp = entity.timestamp,
+                    lat = entity.latitude,  // Añadir la latitud
+                    lon = entity.longitude  // Añadir la longitud
+                )
+            }
+        }
+        ?.stateIn(
+            viewModelScope,
+            SharingStarted.Lazily,
+            emptyList()
+        )
+
+    fun addToRecentSearches(suggestion: NominatimResponse) {
+        viewModelScope.launch {
+            searchHistoryRepository?.addSearch(
+                name = suggestion.displayName.split(",").first(),
+                address = suggestion.displayName,
+                lat = suggestion.lat.toDouble(),
+                lon = suggestion.lon.toDouble()
+            )
+        }
+    }
+
+    fun removeFromRecentSearches(search: RecentSearch) {
+        viewModelScope.launch {
+            searchHistoryRepository?.removeSearch(search) // Cambiado para usar RecentSearch directamente
+        }
+    }
+
+    class CrearReporteViewModelFactory(
+        private val searchHistoryRepository: SearchHistoryRepository
+    ) : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            if (modelClass.isAssignableFrom(CrearReporteViewModel::class.java)) {
+                @Suppress("UNCHECKED_CAST")
+                return CrearReporteViewModel(searchHistoryRepository) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class")
+        }
+    }
+
+    private suspend fun obtenerUltimoFolio(): Int {
+        return try {
+            val reportesRef = firestore.collection("reportes")
+                .orderBy("folio", Query.Direction.DESCENDING)
+                .limit(1)
+
+            val snapshot = reportesRef.get().await()
+            if (snapshot.isEmpty) {
+                100000 // Folio inicial si no hay reportes
+            } else {
+                val ultimoFolio = snapshot.documents[0].getLong("folio") ?: 100000
+                ultimoFolio.toInt()
+            }
+        } catch (e: Exception) {
+            Log.e("CrearReporteViewModel", "Error obteniendo último folio", e)
+            100000 // Folio por defecto en caso de error
+        }
+    }
+
     fun showError(message: String) {
-        errorMessage = message // Asignar mensaje de error
-        showErrorDialog = true // Mostrar diálogo de error
+        errorMessage = message
+        showErrorDialog = true
     }
 
-    // Función para cerrar el diálogo de error
     fun dismissErrorDialog() {
-        showErrorDialog = false // Ocultar diálogo de error
-        errorMessage = null // Limpiar mensaje de error
+        showErrorDialog = false
+        errorMessage = null
     }
 
-    // Función para actualizar el comentario
     fun onComentarioChange(newComentario: String) {
-        comentario = newComentario // Actualizar comentario
-        Log.d("CrearReporteViewModel", "Comentario actualizado: $newComentario") // Log del cambio
+        comentario = newComentario
+        Log.d("CrearReporteViewModel", "Comentario actualizado: $newComentario")
     }
 
-    // Función para manejar la foto capturada
     fun onPhotoCaptured(uri: Uri) {
-        photoUri = uri // Guardar URI de la foto
-        hasPhoto = true // Indicar que se ha capturado una foto
-        showCamera = false // Ocultar cámara
-        Log.d("CrearReporteViewModel", "Foto capturada: $uri") // Log de la foto capturada
+        photoUri = uri
+        hasPhoto = true
+        showCamera = false
+        Log.d("CrearReporteViewModel", "Foto capturada: $uri")
     }
 
-    // Función para mostrar la cámara
     fun onCameraClick() {
-        showCamera = true // Cambiar estado para mostrar cámara
+        showCamera = true
     }
 
-    // Función para ocultar la cámara
     fun onDismissCamera() {
-        showCamera = false // Cambiar estado para ocultar cámara
+        showCamera = false
     }
 
-    // Función para mostrar el mapa
     fun onMapClick() {
-        showMap = true // Cambiar estado para mostrar mapa
+        showMap = true
     }
 
-    // Función para ocultar el mapa
     fun onDismissMap() {
-        showMap = false // Cambiar estado para ocultar mapa
+        showMap = false
     }
 
-    // Función para manejar la ubicación seleccionada en el mapa
     fun onLocationSelected(location: GeoPoint, address: String) {
         Log.d("CrearReporteViewModel", "Ubicación seleccionada: Lat=${location.latitude}, Lon=${location.longitude}")
         Log.d("CrearReporteViewModel", "Dirección: $address")
-        selectedLocation = location // Guardar ubicación seleccionada
-        direccion = address // Guardar dirección
-        showMap = false // Ocultar mapa
+        selectedLocation = location
+        direccion = address
+        showMap = false
     }
 
-    // Función para obtener el centro de Chetumal
     fun getChetumalCenter() = chetumalCenter
 
-    // Función para limpiar la foto
     fun clearPhoto() {
-        photoUri = null // Limpiar URI de la foto
-        hasPhoto = false // Indicar que no hay foto
+        photoUri = null
+        hasPhoto = false
     }
 
-    // Función para validar campos antes de enviar el reporte
     private fun validateFields(): Boolean {
-        errorMessage = null // Limpiar mensaje de error
+        errorMessage = null
 
-        // Verificar si hay una foto
         if (!hasPhoto || photoUri == null) {
-            showError("Por favor, toma una foto") // Mostrar error si no hay foto
-            Log.w("CrearReporteViewModel", "Validación fallida: No hay foto") // Log de validación
-            return false // Retornar false
+            showError("Por favor, toma una foto")
+            Log.w("CrearReporteViewModel", "Validación fallida: No hay foto")
+            return false
         }
 
-        // Verificar si hay dirección
         if (direccion.isEmpty()) {
-            showError("Por favor, selecciona una ubicación") // Mostrar error si no hay dirección
-            Log.w("CrearReporteViewModel", "Validación fallida: No hay dirección") // Log de validación
-            return false // Retornar false
+            showError("Por favor, selecciona una ubicación")
+            Log.w("CrearReporteViewModel", "Validación fallida: No hay dirección")
+            return false
         }
 
-        // Verificar si hay comentario
         if (comentario.isEmpty()) {
-            showError("Por favor, describe el motivo del reporte") // Mostrar error si no hay comentario
-            Log.w("CrearReporteViewModel", "Validación fallida: No hay comentario") // Log de validación
-            return false // Retornar false
+            showError("Por favor, describe el motivo del reporte")
+            Log.w("CrearReporteViewModel", "Validación fallida: No hay comentario")
+            return false
         }
 
-        Log.d("CrearReporteViewModel", "Validación exitosa de todos los campos") // Log de validación exitosa
-        return true // Retornar true si todos los campos son válidos
+        Log.d("CrearReporteViewModel", "Validación exitosa de todos los campos")
+        return true
     }
 
-    // Función para optimizar el bitmap
     private fun optimizeBitmap(bitmap: Bitmap): Bitmap {
         val maxDimension = 1024
 
-        // Calcular las nuevas dimensiones manteniendo el aspect ratio
         val ratio = maxDimension.toFloat() / Math.max(bitmap.width, bitmap.height)
         val newWidth = (bitmap.width * ratio).toInt()
         val newHeight = (bitmap.height * ratio).toInt()
 
-        // Retornar el bitmap original si ya es más pequeño
         if (ratio >= 1) return bitmap
 
         return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
     }
 
-    // Función para convertir Url a Base64 con optimizaciones
     private suspend fun convertImageToBase64(context: Context, uri: Uri): String = withContext(Dispatchers.IO) {
         try {
-            // 1. Leer la imagen y obtener sus dimensiones originales
             val inputStream = context.contentResolver.openInputStream(uri)
             val options = BitmapFactory.Options().apply {
                 inJustDecodeBounds = true
@@ -187,7 +242,6 @@ class CrearReporteViewModel : ViewModel() {
             BitmapFactory.decodeStream(inputStream, null, options)
             inputStream?.close()
 
-            // 2. Calcular el factor de escala inicial
             val maxDimension = 1024
             var scale = 1
             while ((options.outWidth / scale > maxDimension) ||
@@ -195,7 +249,6 @@ class CrearReporteViewModel : ViewModel() {
                 scale *= 2
             }
 
-            // 3. Cargar la imagen con el factor de escala calculado
             val scaledOptions = BitmapFactory.Options().apply {
                 inSampleSize = scale
             }
@@ -205,31 +258,25 @@ class CrearReporteViewModel : ViewModel() {
 
             if (bitmap == null) throw Exception("No se pudo cargar la imagen")
 
-            // 4. Optimizar el bitmap si aún es necesario
             bitmap = optimizeBitmap(bitmap)
 
-            // 5. Comprimir la imagen
             val outputStream = ByteArrayOutputStream()
 
-            // Intentar primero con calidad 70%
             bitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream)
 
-            // Si el tamaño es muy grande, comprimir más
             var compressQuality = 70
-            while (outputStream.size() > 750000 && compressQuality > 10) { // 750KB límite seguro
-                outputStream.reset() // Limpiar el stream
-                compressQuality -= 10 // Reducir calidad en intervalos de 10
+            while (outputStream.size() > 750000 && compressQuality > 10) {
+                outputStream.reset()
+                compressQuality -= 10
                 bitmap.compress(Bitmap.CompressFormat.JPEG, compressQuality, outputStream)
                 Log.d("CrearReporteViewModel",
                     "Recomprimiendo imagen con calidad: $compressQuality%, " +
                             "Tamaño: ${outputStream.size() / 1024}KB")
             }
 
-            // 6. Convertir a base64
             val imageBytes = outputStream.toByteArray()
             val base64String = Base64.encodeToString(imageBytes, Base64.DEFAULT)
 
-            // 7. Logging para monitoreo
             Log.d("CrearReporteViewModel", """
                 Imagen procesada:
                 - Dimensiones originales: ${options.outWidth}x${options.outHeight}
@@ -238,11 +285,9 @@ class CrearReporteViewModel : ViewModel() {
                 - Tamaño final: ${outputStream.size() / 1024}KB
             """.trimIndent())
 
-            // 8. Limpiar recursos
             outputStream.close()
             bitmap.recycle()
 
-            // 9. Retornar el string base64 con el prefijo correcto
             "data:image/jpeg;base64,$base64String"
 
         } catch (e: Exception) {
@@ -251,48 +296,61 @@ class CrearReporteViewModel : ViewModel() {
         }
     }
 
-    // Modificar la función sendReport para usar la nueva conversión
     fun sendReport(categoria: String, authViewModel: AuthViewModel, context: Context) = viewModelScope.launch {
         try {
+            if (!NetworkUtils.isNetworkAvailable(context)) {
+                showError("No hay conexión a Internet. Por favor, verifica tu conexión e intenta nuevamente.")
+                return@launch
+            }
+
             if (!validateFields()) return@launch
 
             isLoading = true
             errorMessage = null
 
-            val userId = when (val state = authViewModel.authState.value) {
-                is AuthState.Authenticated -> state.user.uid
-                else -> "anonymous"
-            }
+            NetworkUtils.executeWithConnection(
+                context = context,
+                onNoConnection = {
+                    showError("Se perdió la conexión a Internet. Por favor, intenta nuevamente.")
+                    isLoading = false
+                }
+            ) {
+                val userId = when (val state = authViewModel.authState.value) {
+                    is AuthState.Authenticated -> state.user.uid
+                    else -> "anonymous"
+                }
 
-            // Convertir imagen a base64 con las nuevas optimizaciones
-            val imageBase64 = photoUri?.let { uri ->
-                convertImageToBase64(context, uri)
-            } ?: throw Exception("No se encontró la imagen")
+                // Obtener el último folio y generar el nuevo
+                val ultimoFolio = obtenerUltimoFolio()
+                val nuevoFolio = ultimoFolio + 1
 
-            // Crear el documento del reporte con la imagen en base64
-            val reporte = hashMapOf(
-                "userId" to userId,
-                "isAnonymous" to (userId == "anonymous"),
-                "categoria" to categoria,
-                "foto" to imageBase64,
-                "direccion" to direccion,
-                "comentario" to comentario,
-                "fecha" to com.google.firebase.Timestamp.now(),
-                "estado" to "pendiente",
-                "ubicacion" to hashMapOf(
-                    "latitud" to selectedLocation?.latitude,
-                    "longitud" to selectedLocation?.longitude
+                val imageBase64 = photoUri?.let { uri ->
+                    convertImageToBase64(context, uri)
+                } ?: throw Exception("No se encontró la imagen")
+
+                val reporte = hashMapOf(
+                    "folio" to nuevoFolio,
+                    "userId" to userId,
+                    "isAnonymous" to (userId == "anonymous"),
+                    "categoria" to categoria,
+                    "foto" to imageBase64,
+                    "direccion" to direccion,
+                    "comentario" to comentario,
+                    "fecha" to com.google.firebase.Timestamp.now(),
+                    "estado" to "pendiente",
+                    "ubicacion" to hashMapOf(
+                        "latitud" to selectedLocation?.latitude,
+                        "longitud" to selectedLocation?.longitude
+                    )
                 )
-            )
 
-            // Guardar en Firestore
-            firestore.collection("reportes")
-                .add(reporte)
-                .await()
+                firestore.collection("reportes")
+                    .add(reporte)
+                    .await()
 
-            reporteSent = true
-            isLoading = false
-
+                reporteSent = true
+                isLoading = false
+            }
         } catch (e: Exception) {
             Log.e("CrearReporteViewModel", "Error al enviar reporte", e)
             showError("Error al enviar el reporte: ${e.message}")
@@ -302,6 +360,7 @@ class CrearReporteViewModel : ViewModel() {
 
     data class ReporteMap(
         val id: String,
+        val folio: Int,
         val categoria: String,
         val latitud: Double,
         val longitud: Double,
@@ -315,21 +374,17 @@ class CrearReporteViewModel : ViewModel() {
     var reportes by mutableStateOf<List<ReporteMap>>(emptyList())
         private set
 
-    // Cambiamos la forma de manejar la categoría seleccionada
     private var _selectedCategory = mutableStateOf<String?>(null)
     val selectedCategory: String? get() = _selectedCategory.value
 
-    // Lista filtrada de reportes
     private var _filteredReportes = mutableStateOf<List<ReporteMap>>(emptyList())
     val filteredReportes: List<ReporteMap> get() = _filteredReportes.value
 
-    // Función para establecer la categoría seleccionada y filtrar reportes
     fun updateSelectedCategory(categoria: String?) {
         _selectedCategory.value = categoria
         filterReportes()
     }
 
-    // Función para filtrar reportes
     private fun filterReportes() {
         _filteredReportes.value = if (_selectedCategory.value == null) {
             reportes
@@ -348,6 +403,7 @@ class CrearReporteViewModel : ViewModel() {
 
                 ReporteMap(
                     id = doc.id,
+                    folio = (doc.getLong("folio") ?: 0).toInt(),
                     categoria = doc.getString("categoria") ?: "",
                     latitud = latitud,
                     longitud = longitud,
@@ -358,7 +414,6 @@ class CrearReporteViewModel : ViewModel() {
                     fecha = doc.getTimestamp("fecha") ?: com.google.firebase.Timestamp.now()
                 )
             }
-            // Actualizar también los reportes filtrados
             filterReportes()
         } catch (e: Exception) {
             Log.e("CrearReporteViewModel", "Error obteniendo reportes", e)
@@ -383,6 +438,7 @@ class CrearReporteViewModel : ViewModel() {
 
                         ReporteMap(
                             id = doc.id,
+                            folio = (doc.getLong("folio") ?: 0).toInt(),
                             categoria = doc.getString("categoria") ?: "",
                             latitud = latitud,
                             longitud = longitud,
@@ -393,13 +449,11 @@ class CrearReporteViewModel : ViewModel() {
                             fecha = doc.getTimestamp("fecha") ?: com.google.firebase.Timestamp.now()
                         )
                     }
-                    // Actualizar reportes filtrados después de cada actualización
                     filterReportes()
                 }
             }
     }
 
-    // limpiar el listener
     override fun onCleared() {
         super.onCleared()
         reportesListener?.remove()

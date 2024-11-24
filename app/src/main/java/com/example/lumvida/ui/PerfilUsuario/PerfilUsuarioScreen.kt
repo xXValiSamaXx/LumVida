@@ -7,6 +7,7 @@ import androidx.compose.runtime.* // Importa funciones de composición y estado 
 import androidx.compose.ui.Alignment // Importa la clase para alinear elementos en un contenedor.
 import androidx.compose.ui.Modifier // Importa la clase Modifier para modificar la apariencia de los elementos.
 import androidx.compose.ui.graphics.Color // Importa la clase Color para usar colores.
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp // Importa la unidad dp para definir tamaños.
 import androidx.navigation.NavController // Importa la clase NavController para manejar la navegación.
 import com.example.lumvida.ui.theme.* // Importa temas personalizados.
@@ -20,100 +21,164 @@ fun PerfilUsuarioScreen(
 ) {
     val userName by viewModel.userName.collectAsState() // Recolecta el nombre del usuario desde el ViewModel.
     val userEmail by viewModel.userEmail.collectAsState() // Recolecta el correo electrónico del usuario desde el ViewModel.
+    val userPhone by viewModel.userPhone.collectAsState()
+    val isEditing by viewModel.isEditing.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    var editedName by remember { mutableStateOf("") }
+    var editedPhone by remember { mutableStateOf("") }
+
+    // Actualizar los valores editables cuando cambian los valores originales
+    LaunchedEffect(userName, userPhone) {
+        editedName = userName
+        editedPhone = userPhone
+    }
 
     // Contenedor de fondo que ajusta el tema.
     BackgroundContainer(isDarkTheme = isDarkTheme) {
-        Column( // Crea una columna para apilar elementos verticalmente.
+        Column(
             modifier = Modifier
-                .fillMaxSize() // Hace que la columna llene todo el tamaño disponible.
-                .padding(16.dp), // Aplica un relleno de 16 dp.
-            horizontalAlignment = Alignment.CenterHorizontally // Alinea los elementos horizontalmente al centro.
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            TopAppBar( // Crea una barra de navegación en la parte superior.
-                title = { // Define el título de la barra.
-                    Text( // Muestra el texto del título.
-                        text = "Perfil de Usuario", // Texto a mostrar.
-                        style = MaterialTheme.typography.titleLarge, // Aplica un estilo de título grande.
-                        color = if (isDarkTheme) TextPrimary else PrimaryDark // Cambia el color según el tema.
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Perfil de Usuario",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = if (isDarkTheme) TextPrimary else PrimaryDark,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors( // Establece los colores de la TopAppBar.
-                    containerColor = Color.Transparent // Hace que el fondo sea transparente.
-                )
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                ),
+                modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(32.dp)) // Espaciador vertical de 32 dp.
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Información del usuario
-            Card( // Crea una tarjeta para mostrar información del usuario.
+            Text(
+                text = "Mi Perfil",
+                style = MaterialTheme.typography.headlineMedium,
+                color = if (isDarkTheme) TextPrimary else PrimaryDark,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
+
+            Card(
                 modifier = Modifier
-                    .fillMaxWidth() // Hace que la tarjeta llene todo el ancho disponible.
-                    .padding(16.dp), // Aplica un relleno de 16 dp a la tarjeta.
-                colors = CardDefaults.cardColors( // Establece los colores de la tarjeta.
-                    containerColor = if (isDarkTheme) PrimaryDark else Color.White // Cambia el color de fondo según el tema.
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isDarkTheme) PrimaryDark else Color.White
                 )
             ) {
-                Column( // Crea otra columna dentro de la tarjeta.
+                Column(
                     modifier = Modifier
-                        .padding(16.dp) // Aplica un relleno de 16 dp.
-                        .fillMaxWidth(), // Hace que la columna llene todo el ancho disponible.
-                    horizontalAlignment = Alignment.CenterHorizontally // Alinea los elementos horizontalmente al centro.
+                        .padding(16.dp)
+                        .fillMaxWidth()
                 ) {
-                    Text( // Muestra el nombre del usuario.
-                        text = userName, // Texto a mostrar, que es el nombre del usuario.
-                        style = MaterialTheme.typography.headlineMedium, // Aplica un estilo de encabezado mediano.
-                        color = if (isDarkTheme) TextPrimary else PrimaryDark // Cambia el color según el tema.
+                    // Campo Nombre
+                    OutlinedTextField(
+                        value = if (isEditing) editedName else userName,
+                        onValueChange = { editedName = it },
+                        label = { Text("Nombre") },
+                        enabled = isEditing,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary,
+                            unfocusedBorderColor = if (isDarkTheme) TextPrimary else PrimaryDark
+                        )
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp)) // Espaciador vertical de 8 dp.
+                    // Campo Email (siempre deshabilitado)
+                    OutlinedTextField(
+                        value = userEmail,
+                        onValueChange = { },
+                        label = { Text("Correo electrónico") },
+                        enabled = false,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary,
+                            unfocusedBorderColor = if (isDarkTheme) TextPrimary else PrimaryDark
+                        )
+                    )
 
-                    Text( // Muestra el correo electrónico del usuario.
-                        text = userEmail, // Texto a mostrar, que es el correo del usuario.
-                        style = MaterialTheme.typography.bodyLarge, // Aplica un estilo de cuerpo grande.
-                        color = if (isDarkTheme) TextPrimary else PrimaryDark // Cambia el color según el tema.
+                    // Campo Teléfono
+                    OutlinedTextField(
+                        value = if (isEditing) editedPhone else userPhone,
+                        onValueChange = { editedPhone = it },
+                        label = { Text("Teléfono") },
+                        enabled = isEditing,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary,
+                            unfocusedBorderColor = if (isDarkTheme) TextPrimary else PrimaryDark
+                        )
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp)) // Espaciador vertical de 32 dp.
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Botones de acciones
-            Button( // Crea un botón para editar el perfil.
-                onClick = { /* TODO: Implementar edición de perfil */ }, // Acción al hacer clic (pendiente de implementación).
-                modifier = Modifier
-                    .fillMaxWidth() // Hace que el botón llene todo el ancho disponible.
-                    .height(48.dp), // Establece una altura de 48 dp.
-                colors = ButtonDefaults.buttonColors( // Establece los colores del botón.
-                    containerColor = Primary, // Color de fondo del botón.
-                    contentColor = TextPrimary // Color del texto del botón.
-                )
-            ) {
-                Text( // Texto del botón.
-                    text = "Editar Perfil", // Texto a mostrar.
-                    style = MaterialTheme.typography.labelLarge // Aplica un estilo de etiqueta grande.
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp)) // Espaciador vertical de 16 dp.
-
-            Button( // Crea un botón para cerrar sesión.
-                onClick = { // Acción al hacer clic.
-                    viewModel.logout() // Llama a la función de cierre de sesión en el ViewModel.
-                    navController.navigate("inicio") { // Navega a la pantalla de inicio.
-                        popUpTo(0) { inclusive = true } // Limpia la pila de navegación.
+            Button(
+                onClick = {
+                    if (isEditing) {
+                        viewModel.updateUserData(editedName, editedPhone)
+                    } else {
+                        viewModel.toggleEditing()
                     }
                 },
                 modifier = Modifier
-                    .fillMaxWidth() // Hace que el botón llene todo el ancho disponible.
-                    .height(48.dp), // Establece una altura de 48 dp.
-                colors = ButtonDefaults.buttonColors( // Establece los colores del botón.
-                    containerColor = Color.Red, // Usa Color.Red para el fondo del botón.
-                    contentColor = Color.White // Color del texto del botón.
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Primary,
+                    contentColor = TextPrimary
+                ),
+                enabled = !isLoading
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = TextPrimary
+                    )
+                } else {
+                    Text(
+                        text = if (isEditing) "Guardar cambios" else "Editar Perfil",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    viewModel.logout()
+                    navController.navigate("inicio") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Red,
+                    contentColor = Color.White
                 )
             ) {
-                Text( // Texto del botón.
-                    text = "Cerrar Sesión", // Texto a mostrar.
-                    style = MaterialTheme.typography.labelLarge // Aplica un estilo de etiqueta grande.
+                Text(
+                    text = "Cerrar Sesión",
+                    style = MaterialTheme.typography.labelLarge
                 )
             }
         }

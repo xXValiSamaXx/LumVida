@@ -38,11 +38,15 @@ class CategoriasViewModel : ViewModel() {
     private var _error = mutableStateOf<String?>(null)
     var error by _error
 
+    // Estado de conexión
+    private var _isConnected = mutableStateOf(false)
+    var isConnected by _isConnected
+
     init {
         cargarCategorias()
     }
 
-    private fun cargarCategorias() {
+    fun cargarCategorias() {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
@@ -54,7 +58,7 @@ class CategoriasViewModel : ViewModel() {
                     password = "SDCHDd3pwV2NYv5"
                 )
 
-                // Token de autorización (reemplaza esto con tu token)
+                // Token de autorización
                 val token = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI0IiwianRpIjoiOGFmYjhjZmI0MmZhZjBkMGFiNThiZmM2Nzc1YmI3OTkwZDUxNmZlNmY2MDY4YmQ4N2EwOGY4NmZiNTAwNWJiN2JhYTQxZTZiM2FiZWNlZDEiLCJpYXQiOjE3MzEwMjQ1NjMuNTMyMjcyLCJuYmYiOjE3MzEwMjQ1NjMuNTMyMjgsImV4cCI6MTc2MjU2MDU2My4yNTcxNzIsInN1YiI6IjM2Iiwic2NvcGVzIjpbXX0.ZjVSqn3OEVlaIWqPXChfiqPmJulxHJFAkZRA7cqurgcCnHm-24olZcOtzRTu25CQa4OHRvceA-pmrYPOBzPxZWivMe7hbRxtRk-o50vJqgsHBxFsLGkNUAx_PkGQgBPGsFuF6AUpePcRhriqeTytqVWlwUiEP7-w0PT0BDFlGtWguVGrKUVQP0wCqvrBkTb8HYUaZQZjLmH_CS3las0MR8_I398ZAfBvo9UnXwaCNvN_CLimW7gBbp93MGRe0uZ_8Cpd1aRI_5KBHcyLF-uTcKucK3qLt-PR83WBlsI_e9mEPQLkhFPeuaXdUSWX0Jls_9rrnVycOfIjq3ju3B4i8gJfbNU_ptnAdX0YXjyttgh9Hyp1_8rZtlH07fyKg9D8rnEF5AjgnuKDoAM8VCW29E1a7PBMGpHdf5DjqXLt_f_SzW6zS7DzUewU6-CP4stNa_G6Zro4WYLYyFCKZCIG9OQyCSDd9e5EvWNu9SPQqqjB3F7fnW4QGRVBFhsWrfM54fn0QCHV61n3HFV0erjFzdApMc0m-835pK76wcTy24za3uSp7UyYI3GrNLEYwu9ZVxMbVKv5Tx3wklWTU6Cub02WqjETS8bZ36BPXS0DfnlDW-dgiTr5nEuMJo81tdqcXBs8Po--yGFn3OitwuX0UBLz2-3L1k4VyTBZjQyU498"
 
                 val response = RetrofitClient.apiService.getTiposInfraestructura(loginRequest, token)
@@ -83,15 +87,30 @@ class CategoriasViewModel : ViewModel() {
                         }
 
                     _categorias.value = categoriasFiltered
+                    _isConnected.value = true
 
                 } else {
                     val errorBody = response.errorBody()?.string()
                     val errorMsg = "Error en la respuesta: ${response.code()} - $errorBody"
                     Log.e("CategoriasViewModel", errorMsg)
                     _error.value = errorMsg
+                    _isConnected.value = false
                 }
             } catch (e: Exception) {
-                val errorMsg = "Error al cargar categorías: ${e.message}"
+                val errorMsg = when (e) {
+                    is java.net.UnknownHostException -> {
+                        _isConnected.value = false
+                        "Sin conexión a Internet"
+                    }
+                    is java.net.SocketTimeoutException -> {
+                        _isConnected.value = false
+                        "Tiempo de espera agotado"
+                    }
+                    else -> {
+                        _isConnected.value = false
+                        "Error al cargar categorías: ${e.message}"
+                    }
+                }
                 Log.e("CategoriasViewModel", errorMsg, e)
                 _error.value = errorMsg
             } finally {
@@ -119,8 +138,21 @@ class CategoriasViewModel : ViewModel() {
         formattedDate = newDate.format(dateFormatter).replaceFirstChar { it.uppercase() }
     }
 
-    // Función para recargar las categorías manualmente si es necesario
+    // Función para verificar el estado de conexión
+    fun checkNetworkConnection(context: android.content.Context) {
+        _isConnected.value = RetrofitClient.isOnline(context)
+        if (_isConnected.value) {
+            cargarCategorias()
+        }
+    }
+
+    // Función para manejar el reintento manual
     fun recargarCategorias() {
         cargarCategorias()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Limpieza de recursos si es necesario
     }
 }

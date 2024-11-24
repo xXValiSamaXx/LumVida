@@ -1,4 +1,4 @@
-package com.example.lumviva.ui.CrearReporte.ui
+package com.example.lumvida.ui.Reportes.ui
 
 import android.Manifest
 import android.content.Context
@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SignalWifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,19 +48,14 @@ import com.example.lumvida.network.RetrofitClient
 import com.example.lumvida.network.model.NominatimResponse
 import com.example.lumvida.ui.Categorias.ui.CategoriasViewModel
 import com.example.lumvida.ui.CrearReporte.ui.CrearReporteViewModel
-import com.example.lumvida.ui.CrearReporte.ui.CustomInfoWindow
-import com.example.lumvida.ui.CrearReporte.ui.calculateCenter
-import com.example.lumvida.ui.CrearReporte.ui.calculateCircleRadius
-import com.example.lumvida.ui.CrearReporte.ui.createCirclePoints
-import com.example.lumvida.ui.CrearReporte.ui.createNeighborhoodCircle
-import com.example.lumvida.ui.CrearReporte.ui.createSimpleStreetOverlay
+import com.example.lumvida.ui.components.NetworkStatusMessage
+import com.example.lumvida.ui.theme.Primary
+import com.example.lumvida.ui.theme.TextPrimary
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.gson.Gson
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapListener
@@ -86,6 +83,22 @@ var org.osmdroid.views.overlay.Polyline.id: String
     get() = this.getRelatedObject() as? String ?: ""
     set(value) { this.setRelatedObject(value) }
 
+private const val MIN_ZOOM = 14.0
+private const val MAX_ZOOM = 21.0
+private val CHETUMAL_BOUNDS = BoundingBox(
+    18.55, // North
+    -88.25, // East
+    18.45, // South
+    -88.35  // West
+)
+
+//Zooms paara cada reporte individualmente
+private const val ZOOM_LEVEL_1 = 14.0  // Azul
+private const val ZOOM_LEVEL_2 = 16.0  // Verde
+private const val ZOOM_LEVEL_3 = 18.0  // Amarillo
+private const val ZOOM_LEVEL_4 = 20.0  // Rojo
+private const val CIRCLE_RADIUS = 0.00015 // Aproximadamente 15 metros
+
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -95,7 +108,8 @@ fun MapScreen(
     initialLocation: GeoPoint,
     categoriasViewModel: CategoriasViewModel,
     onNavigate: (String) -> Unit = {},
-    viewModel: CrearReporteViewModel
+    viewModel: CrearReporteViewModel,
+    isViewMode: Boolean = false
 ) {
     val context = LocalContext.current
     var mapView by remember { mutableStateOf<MapView?>(null) }
@@ -107,6 +121,27 @@ fun MapScreen(
     var showSuggestions by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var showOptionsMenu by remember { mutableStateOf(false) }
+    var isConnected by remember { mutableStateOf(RetrofitClient.isOnline(context)) }
+    var wasDisconnected by remember { mutableStateOf(false) }
+
+    // Efecto para monitorear la conexión
+    LaunchedEffect(Unit) {
+        while(true) {
+            val connectionState = RetrofitClient.isOnline(context)
+            if (isConnected != connectionState) {
+                if (!connectionState) {
+                    // Se perdió la conexión
+                    wasDisconnected = true
+                }
+                isConnected = connectionState
+                if (isConnected && wasDisconnected) {
+                    // Recargar datos cuando se recupere la conexión
+                    viewModel.obtenerReportes()
+                }
+            }
+            delay(1000)
+        }
+    }
 
     // Efecto para cargar los reportes
     LaunchedEffect(Unit) {
@@ -122,6 +157,33 @@ fun MapScreen(
             "basura acumulada" -> R.drawable.ic_marker_delete
             else -> R.drawable.ic_marker_default // icono por defecto
         }
+    }
+
+    fun createSimpleStreetOverlay(mapView: MapView, result: NominatimResponse) {
+        val marker = Marker(mapView).apply {
+            id = "search_overlay"
+            position = GeoPoint(result.lat.toDouble(), result.lon.toDouble())
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            icon = ContextCompat.getDrawable(mapView.context, R.drawable.ic_location_marker)?.apply {
+                setTint(android.graphics.Color.rgb(255, 0, 0))
+            }
+            title = result.displayName
+        }
+        mapView.overlays.add(marker)
+        mapView.invalidate()
+    }
+
+    fun createNeighborhoodCircle(center: GeoPoint): ArrayList<GeoPoint> {
+        val points = ArrayList<GeoPoint>()
+        val radius = 0.003 // Aproximadamente 300 metros
+
+        for (i in 0..360 step 10) {
+            val radian = Math.toRadians(i.toDouble())
+            val lat = center.latitude + radius * Math.cos(radian)
+            val lon = center.longitude + radius * Math.sin(radian)
+            points.add(GeoPoint(lat, lon))
+        }
+        return points
     }
 
     // Añadir esta función para crear los diferentes tipos de overlays
@@ -325,21 +387,6 @@ fun MapScreen(
         }
     }
 
-    // Función de respaldo para crear un marcador simple
-    fun createSimpleStreetOverlay(mapView: MapView, result: NominatimResponse) {
-        val marker = Marker(mapView).apply {
-            id = "search_overlay"
-            position = GeoPoint(result.lat.toDouble(), result.lon.toDouble())
-            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-            icon = ContextCompat.getDrawable(mapView.context, R.drawable.ic_location_marker)?.apply {
-                setTint(android.graphics.Color.rgb(255, 0, 0))
-            }
-            title = result.displayName
-        }
-        mapView.overlays.add(marker)
-        mapView.invalidate()
-    }
-
     // Función auxiliar para crear puntos alrededor de una calle
     fun createStreetHighlight(center: GeoPoint): ArrayList<GeoPoint> {
         val points = ArrayList<GeoPoint>()
@@ -350,21 +397,6 @@ fun MapScreen(
         points.add(GeoPoint(center.latitude + streetWidth, center.longitude - streetLength))
         points.add(GeoPoint(center.latitude + streetWidth, center.longitude + streetLength))
         points.add(GeoPoint(center.latitude - streetWidth, center.longitude + streetLength))
-
-        return points
-    }
-
-    // Función auxiliar para crear un círculo para colonias
-    fun createNeighborhoodCircle(center: GeoPoint): ArrayList<GeoPoint> {
-        val points = ArrayList<GeoPoint>()
-        val radius = 0.003 // Aproximadamente 300 metros
-
-        for (i in 0..360 step 10) {
-            val radian = Math.toRadians(i.toDouble())
-            val lat = center.latitude + radius * Math.cos(radian)
-            val lon = center.longitude + radius * Math.sin(radian)
-            points.add(GeoPoint(lat, lon))
-        }
 
         return points
     }
@@ -389,38 +421,50 @@ fun MapScreen(
         return formato.format(fecha)
     }
 
-    // Efecto para actualizar marcadores cuando cambien los reportes (reemplaza el LaunchedEffect existente)
+    // Función corregida para crear los puntos del círculo
+    fun createCirclePoints(center: GeoPoint, radiusMeters: Double): ArrayList<GeoPoint> {
+        val points = ArrayList<GeoPoint>()
+        val earthRadius = 6371000.0 // Radio de la Tierra en metros
+        val radiusInDegrees = (radiusMeters / earthRadius) * (180.0 / Math.PI)
+
+        for (i in 0..360) {
+            val angle = Math.toRadians(i.toDouble())
+            val lat = center.latitude + (radiusInDegrees * Math.cos(angle))
+            val lon = center.longitude + (radiusInDegrees * Math.sin(angle) / Math.cos(Math.toRadians(center.latitude)))
+            points.add(GeoPoint(lat, lon))
+        }
+        return points
+    }
+
+    // En el LaunchedEffect, reemplaza la parte del círculo y el zoom listener con esto:
     LaunchedEffect(viewModel.filteredReportes, viewModel.selectedCategory) {
         mapView?.let { map ->
             try {
                 map.overlays.removeAll { it is Marker || it is org.osmdroid.views.overlay.Polygon }
                 val reportesToShow = viewModel.filteredReportes
-                Log.d("MapScreen", "Mostrando ${reportesToShow.size} reportes filtrados")
 
-                // Crear círculo que engloba todos los reportes
-                if (reportesToShow.isNotEmpty()) {
-                    val points = reportesToShow.map { GeoPoint(it.latitud, it.longitud) }
-                    val radius = points.calculateCircleRadius()
-                    val centerPoint = reportesToShow.calculateCenter()
+                // Lista para mantener referencia a los círculos
+                val circles = mutableListOf<org.osmdroid.views.overlay.Polygon>()
 
-                    val circle = org.osmdroid.views.overlay.Polygon().apply {
-                        this.points = centerPoint.createCirclePoints(radius)
-                        fillColor = when (viewModel.selectedCategory?.lowercase()) {
-                            null -> android.graphics.Color.argb(120, 135, 206, 235) // Azul suave más visible
-                            "alumbrado público" -> android.graphics.Color.argb(50, 255, 165, 0) // Naranja
-                            "bacheo" -> android.graphics.Color.argb(50, 255, 0, 0) // Rojo
-                            "basura acumulada" -> android.graphics.Color.argb(50, 0, 255, 0) // Verde
-                            "drenajes obstruidos" -> android.graphics.Color.argb(50, 0, 0, 255) // Azul
-                            else -> android.graphics.Color.argb(50, 128, 128, 128)
-                        }
-                        strokeWidth = 5f
-                        strokeColor = fillColor
-                    }
-                    map.overlays.add(circle)
-                }
-
-                // Añadir marcadores
+                // Añadir marcadores y círculos
                 reportesToShow.forEach { reporte ->
+                    // Crear el círculo
+                    val circle = org.osmdroid.views.overlay.Polygon().apply {
+                        points = createCirclePoints(
+                            GeoPoint(reporte.latitud, reporte.longitud),
+                            15.0 // 15 metros de radio
+                        )
+
+                        // Configuración inicial del círculo
+                        strokeWidth = 2f
+                        fillColor = android.graphics.Color.argb(50, 0, 0, 255) // Azul inicial
+                        strokeColor = android.graphics.Color.BLUE
+                    }
+
+                    circles.add(circle)
+                    map.overlays.add(circle)
+
+                    // Mantener el código existente del marcador
                     val marker = Marker(map).apply {
                         position = GeoPoint(reporte.latitud, reporte.longitud)
                         relatedObject = reporte
@@ -453,8 +497,39 @@ fun MapScreen(
                     }
                     map.overlays.add(marker)
                 }
-                map.invalidate()
 
+                // Observar cambios de zoom
+                var lastZoomLevel = map.zoomLevelDouble
+                map.setMapListener(object : MapListener {
+                    override fun onScroll(event: ScrollEvent?): Boolean {
+                        return true
+                    }
+
+                    override fun onZoom(event: ZoomEvent?): Boolean {
+                        val currentZoom = map.zoomLevelDouble
+                        if (currentZoom != lastZoomLevel) {
+                            lastZoomLevel = currentZoom
+                            circles.forEach { circle ->
+                                circle.fillColor = when {
+                                    currentZoom >= ZOOM_LEVEL_4 -> android.graphics.Color.argb(50, 255, 0, 0)    // Rojo
+                                    currentZoom >= ZOOM_LEVEL_3 -> android.graphics.Color.argb(50, 255, 255, 0)  // Amarillo
+                                    currentZoom >= ZOOM_LEVEL_2 -> android.graphics.Color.argb(50, 0, 255, 0)    // Verde
+                                    else -> android.graphics.Color.argb(50, 0, 0, 255)                           // Azul
+                                }
+                                circle.strokeColor = when {
+                                    currentZoom >= ZOOM_LEVEL_4 -> android.graphics.Color.RED
+                                    currentZoom >= ZOOM_LEVEL_3 -> android.graphics.Color.YELLOW
+                                    currentZoom >= ZOOM_LEVEL_2 -> android.graphics.Color.GREEN
+                                    else -> android.graphics.Color.BLUE
+                                }
+                            }
+                            map.invalidate()
+                        }
+                        return true
+                    }
+                })
+
+                map.invalidate()
             } catch (e: Exception) {
                 Log.e("MapScreen", "Error al actualizar marcadores", e)
             }
@@ -550,13 +625,32 @@ fun MapScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Mapa
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                WindowInsets.systemBars.asPaddingValues() // Considera tanto la barra de estado como la de navegación
+            )
+    ) {
         AndroidView(
             factory = { context ->
                 MapView(context).apply {
                     setTileSource(TileSourceFactory.MAPNIK)
                     setMultiTouchControls(true)
+
+                    maxZoomLevel = MAX_ZOOM
+                    minZoomLevel = MIN_ZOOM
+                    setScrollableAreaLimitLatitude(
+                        CHETUMAL_BOUNDS.latNorth,
+                        CHETUMAL_BOUNDS.latSouth,
+                        0
+                    )
+                    setScrollableAreaLimitLongitude(
+                        CHETUMAL_BOUNDS.lonWest,
+                        CHETUMAL_BOUNDS.lonEast,
+                        0
+                    )
+
                     controller.setZoom(18.0)
                     controller.setCenter(initialLocation)
 
@@ -598,6 +692,11 @@ fun MapScreen(
                 onSearch = { searchLocation(searchQuery) },
                 isSearching = isSearching,
                 mapView = mapView,
+                showCategoriesMenu = showCategoriesMenu,
+                onShowCategoriesMenu = { showCategoriesMenu = it },
+                viewModel = viewModel,
+                categoriasViewModel = categoriasViewModel,
+                onCenterMap = { map, reports -> centerMapOnReports(map, reports) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -709,195 +808,17 @@ fun MapScreen(
             }
         }
 
-        // Barra de navegación inferior
-        Surface(
+        // Mensaje de estado de red
+        Box(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth(),
-            color = Color.Black.copy(alpha = 0.85f)
+                .matchParentSize()
+                .padding(bottom = 16.dp),
+            contentAlignment = Alignment.BottomCenter
         ) {
-            Box(modifier = Modifier.fillMaxWidth()){
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Reports con menú desplegable
-                    Box {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.clickable { showCategoriesMenu = true }
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_chart),
-                                contentDescription = "Reports",
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Text("Reportes", color = Color.White)
-                        }
-
-                        // Menú desplegable de categorías
-                        DropdownMenu(
-                            expanded = showCategoriesMenu,
-                            onDismissRequest = { showCategoriesMenu = false },
-                            modifier = Modifier
-                                .background(Color.Black.copy(alpha = 0.85f))
-                                .width(145.dp),
-                            offset = DpOffset(x = (-30).dp, y = 0.dp)
-                        ) {
-                            // Opción "Todos los reportes"
-                            DropdownMenuItem(
-                                onClick = {
-                                    showCategoriesMenu = false
-                                    // Cerrar todas las ventanas de información abiertas
-                                    InfoWindow.closeAllInfoWindowsOn(mapView)
-                                    viewModel.updateSelectedCategory(null)
-                                    centerMapOnReports(mapView, viewModel.reportes)
-                                    Log.d("MapScreen", "Seleccionado: Todos los reportes")
-                                },
-                                text = {
-                                    Row(
-                                        horizontalArrangement = Arrangement.Start,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.List,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "Todos los reportes",
-                                            color = Color.White,
-                                            textAlign = TextAlign.Start
-                                        )
-                                    }
-                                }
-                            )
-
-                            // Dividir entre las opciones
-                            Divider(color = Color.White.copy(alpha = 0.2f))
-
-                            // Opciones de categorías
-                            categoriasViewModel.categorias.forEach { categoria ->
-                                DropdownMenuItem(
-                                    onClick = {
-                                        showCategoriesMenu = false
-                                        // Cerrar todas las ventanas de información abiertas
-                                        InfoWindow.closeAllInfoWindowsOn(mapView)
-                                        viewModel.updateSelectedCategory(categoria.titulo)
-                                        centerMapOnReports(mapView, viewModel.filteredReportes)
-                                        Log.d("MapScreen", "Categoría seleccionada: ${categoria.titulo}")
-                                    },
-                                    text = {
-                                        Row(
-                                            horizontalArrangement = Arrangement.Start,
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Icon(
-                                                imageVector = categoria.icono,
-                                                contentDescription = null,
-                                                tint = when (categoria.titulo.lowercase()) {
-                                                    "bacheo" -> Color.Red
-                                                    "alumbrado público" -> Color(0xFFFFA500)
-                                                    "drenajes obstruidos" -> Color.Blue
-                                                    "basura acumulada" -> Color.Green
-                                                    else -> Color.White
-                                                },
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = categoria.titulo,
-                                                color = Color.White,
-                                                textAlign = TextAlign.Start
-                                            )
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    // Alerts
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable { onNavigate("alerts") }
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_notifications),
-                            contentDescription = "Alerts",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Text("Alertas", color = Color.White)
-                    }
-
-                    // Me
-                    Box{
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.clickable {  showOptionsMenu = true }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Opciones",
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Text("Opciones", color = Color.White)
-                        }
-
-                        DropdownMenu(
-                            expanded = showOptionsMenu,  // Nueva variable de estado
-                            onDismissRequest = { showOptionsMenu = false },
-                            modifier = Modifier
-                                .background(Color.Black.copy(alpha = 0.85f))
-                                .width(150.dp),
-                            offset = DpOffset(x = 38.dp, y = (-6).dp)
-                        ) {
-                            DropdownMenuItem(
-                                onClick = {
-                                    showOptionsMenu = false
-                                    getCurrentLocation(context)?.let { location ->
-                                        val point = GeoPoint(location.latitude, location.longitude)
-                                        val address = obtenerDireccion(context, location.latitude, location.longitude)
-                                        onLocationSelected(point, address)
-                                        onDismiss()
-                                    }
-                                },
-                                text = {
-                                    Row(
-                                        horizontalArrangement = Arrangement.Start,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.MyLocation,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "Seleccionar mi ubicación",
-                                            color = Color.White,
-                                            textAlign = TextAlign.Start
-                                        )
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            }
+            NetworkStatusMessage(
+                isConnected = isConnected,
+                wasDisconnected = wasDisconnected
+            )
         }
     }
     // Diálogo de permisos
@@ -922,108 +843,190 @@ private fun SearchBar(
     onSearch: () -> Unit,
     isSearching: Boolean,
     mapView: MapView?,
+    showCategoriesMenu: Boolean,
+    onShowCategoriesMenu: (Boolean) -> Unit,
+    viewModel: CrearReporteViewModel,
+    categoriasViewModel: CategoriasViewModel,
+    onCenterMap: (MapView, List<CrearReporteViewModel.ReporteMap>) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(56.dp),
-        shape = RoundedCornerShape(28.dp),
-        color = Color.White,
-        shadowElevation = 4.dp
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Row(
+        // Barra de búsqueda
+        Surface(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .weight(1f)
+                .height(56.dp),
+            shape = RoundedCornerShape(28.dp),
+            color = Color.White,
+            shadowElevation = 4.dp
         ) {
-            Icon(
-                painter = painterResource(id = android.R.drawable.ic_menu_search),
-                contentDescription = "Search",
-                tint = Color.Gray,
-                modifier = Modifier.size(24.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(id = android.R.drawable.ic_menu_search),
+                    contentDescription = "Search",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(24.dp)
+                )
 
-            Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
-            BasicTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                singleLine = true,
-                textStyle = TextStyle(
-                    color = Color.Black
-                ),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(
-                    onSearch = {
-                        if (searchQuery.isNotEmpty()) {
-                            onSearch()
+                BasicTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    singleLine = true,
+                    textStyle = TextStyle(color = Color.Black),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { if (searchQuery.isNotEmpty()) onSearch() }),
+                    modifier = Modifier.weight(1f),
+                    decorationBox = { innerTextField ->
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            if (searchQuery.isEmpty()) {
+                                Text(text = "Buscar ubicación", color = Color.Gray)
+                            }
+                            innerTextField()
                         }
                     }
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .onKeyEvent { keyEvent ->
-                        if (keyEvent.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ENTER) {
-                            if (searchQuery.isNotEmpty()) {
-                                onSearch()
+                )
+
+                if (isSearching) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.Gray
+                    )
+                } else if (searchQuery.isNotEmpty()) {
+                    IconButton(
+                        onClick = {
+                            onSearchQueryChange("")
+                            mapView?.let { map ->
+                                InfoWindow.closeAllInfoWindowsOn(map)
+                                map.overlays?.removeAll { overlay ->
+                                    when (overlay) {
+                                        is org.osmdroid.views.overlay.Marker ->
+                                            overlay.id in listOf("search_overlay", "search_overlay_start", "search_overlay_end")
+                                        is org.osmdroid.views.overlay.Polyline ->
+                                            overlay.id == "search_overlay"
+                                        is org.osmdroid.views.overlay.Polygon ->
+                                            overlay.id == "search_overlay"
+                                        else -> false
+                                    }
+                                }
+                                map.invalidate()
                             }
-                            true
-                        } else {
-                            false
                         }
-                    },
-                decorationBox = { innerTextField ->
-                    Box(
-                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        if (searchQuery.isEmpty()) {
-                            Text(
-                                text = "Buscar ubicación",
-                                color = Color.Gray
-                            )
-                        }
-                        innerTextField()
+                        Icon(
+                            painter = painterResource(id = android.R.drawable.ic_menu_close_clear_cancel),
+                            contentDescription = "Limpiar búsqueda",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
-            )
+            }
+        }
 
-            if (isSearching) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = Color.Gray
-                )
-            } else if (searchQuery.isNotEmpty()) {
-                IconButton(
+        // Botón de Reportes
+        Box {
+            Surface(
+                modifier = Modifier
+                    .size(56.dp),
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.75f),
+                shadowElevation = 4.dp
+            ) {
+                IconButton(onClick = { onShowCategoriesMenu(true) }) {
+                    Icon(
+                        imageVector = Icons.Default.List,
+                        contentDescription = "Reportes",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            DropdownMenu(
+                expanded = showCategoriesMenu,
+                onDismissRequest = { onShowCategoriesMenu(false) },
+                modifier = Modifier
+                    .background(Color.Black.copy(alpha = 0.85f))
+                    .width(200.dp),
+                offset = DpOffset(x = (-150).dp, y = 0.dp)
+            ) {
+                // Opción "Todos los reportes"
+                DropdownMenuItem(
                     onClick = {
-                        onSearchQueryChange("")
-                        // Limpiar overlays cuando se limpia la búsqueda
-                        mapView?.let { map ->
-                            // Cerrar cualquier InfoWindow abierta
-                            InfoWindow.closeAllInfoWindowsOn(map)
-
-                            // Limpiar overlays de búsqueda
-                            map.overlays?.removeAll { overlay ->
-                                when (overlay) {
-                                    is org.osmdroid.views.overlay.Marker ->
-                                        overlay.id in listOf("search_overlay", "search_overlay_start", "search_overlay_end")
-                                    is org.osmdroid.views.overlay.Polyline ->
-                                        overlay.id == "search_overlay"
-                                    is org.osmdroid.views.overlay.Polygon ->
-                                        overlay.id == "search_overlay"
-                                    else -> false
-                                }
-                            }
-                            map.invalidate()
+                        onShowCategoriesMenu(false)
+                        InfoWindow.closeAllInfoWindowsOn(mapView)
+                        viewModel.updateSelectedCategory(null)
+                        mapView?.let { map -> onCenterMap(map, viewModel.reportes) }
+                    },
+                    text = {
+                        Row(
+                            horizontalArrangement = Arrangement.Start,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.List,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Todos los reportes",
+                                color = Color.White,
+                                textAlign = TextAlign.Start
+                            )
                         }
                     }
-                ) {
-                    Icon(
-                        painter = painterResource(id = android.R.drawable.ic_menu_close_clear_cancel),
-                        contentDescription = "Limpiar búsqueda",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(24.dp)
+                )
+
+                Divider(color = Color.White.copy(alpha = 0.2f))
+
+                // Opciones de categorías
+                categoriasViewModel.categorias.forEach { categoria ->
+                    DropdownMenuItem(
+                        onClick = {
+                            onShowCategoriesMenu(false)
+                            InfoWindow.closeAllInfoWindowsOn(mapView)
+                            viewModel.updateSelectedCategory(categoria.titulo)
+                            mapView?.let { map -> onCenterMap(map, viewModel.filteredReportes) }
+                        },
+                        text = {
+                            Row(
+                                horizontalArrangement = Arrangement.Start,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    imageVector = categoria.icono,
+                                    contentDescription = null,
+                                    tint = when (categoria.titulo.lowercase()) {
+                                        "bacheo" -> Color.Red
+                                        "alumbrado público" -> Color(0xFFFFA500)
+                                        "drenajes obstruidos" -> Color.Blue
+                                        "basura acumulada" -> Color.Green
+                                        else -> Color.White
+                                    },
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = categoria.titulo,
+                                    color = Color.White,
+                                    textAlign = TextAlign.Start
+                                )
+                            }
+                        }
                     )
                 }
             }

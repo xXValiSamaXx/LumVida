@@ -7,9 +7,16 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SignalWifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,6 +31,9 @@ import com.example.lumvida.R
 import com.example.lumvida.ui.theme.*
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
+import com.example.lumvida.network.RetrofitClient
+import com.example.lumvida.ui.components.NetworkStatusMessage
+import kotlinx.coroutines.delay
 
 @Composable
 fun OptionButton(
@@ -73,6 +83,34 @@ fun CategoriasScreen(
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     val systemUiController = rememberSystemUiController()
+    val context = LocalContext.current
+
+    var isConnected by remember { mutableStateOf(RetrofitClient.isOnline(context)) }
+    var wasDisconnected by remember { mutableStateOf(false) }
+
+    // Este LaunchedEffect manejará la carga inicial y la reconexión
+    LaunchedEffect(isConnected) {  // Cambiado de Unit a isConnected
+        if (isConnected) {
+            viewModel.cargarCategorias()  // Cargar categorías cuando haya conexión
+        }
+    }
+
+    // Este LaunchedEffect monitoreará los cambios en la conexión
+    LaunchedEffect(Unit) {
+        while(true) {
+            val connectionState = RetrofitClient.isOnline(context)
+            if (isConnected != connectionState) {
+                if (!connectionState) {
+                    wasDisconnected = true
+                } else {
+                    // Se recuperó la conexión
+                    wasDisconnected = false
+                }
+                isConnected = connectionState
+            }
+            delay(1000)
+        }
+    }
 
     SideEffect {
         systemUiController.setStatusBarColor(
@@ -93,31 +131,82 @@ fun CategoriasScreen(
             contentScale = ContentScale.FillBounds
         )
 
-        Column(modifier = Modifier.fillMaxSize()) {
-            HeaderSection(navController, viewModel, isDarkTheme)
-
-            Box(
+        if (!isConnected) {
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp),
-                contentAlignment = Alignment.Center
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(48.dp),
-                    modifier = Modifier.offset(y = (-40).dp)
-                ) {
-                    Text(
-                        text = "¿Qué deseas reportar?",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = if (isDarkTheme) TextPrimary else Primary,
-                        textAlign = TextAlign.Center
+                Icon(
+                    imageVector = Icons.Default.SignalWifiOff,
+                    contentDescription = null,
+                    tint = if (isDarkTheme) TextPrimary else Primary,
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Sin conexión",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = if (isDarkTheme) TextPrimary else Primary
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { viewModel.recargarCategorias() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Primary,
+                        contentColor = TextPrimary
                     )
+                ) {
+                    Text("Reintentar")
+                }
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize()) {
+                HeaderSection(navController, viewModel, isDarkTheme)
 
-                    CategoriaGrid(navController, viewModel, isDarkTheme)
+                if (viewModel.isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = if (isDarkTheme) TextPrimary else Primary
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(48.dp),
+                            modifier = Modifier.offset(y = (-40).dp)
+                        ) {
+                            Text(
+                                text = "¿Qué deseas reportar?",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = if (isDarkTheme) TextPrimary else Primary,
+                                textAlign = TextAlign.Center
+                            )
+
+                            CategoriaGrid(navController, viewModel, isDarkTheme)
+                        }
+                    }
                 }
             }
         }
+
+        // Mensaje de estado de red
+        NetworkStatusMessage(
+            isConnected = isConnected,
+            wasDisconnected = wasDisconnected,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 

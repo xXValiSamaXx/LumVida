@@ -30,14 +30,17 @@ import com.example.lumvida.ui.Categorias.ui.CategoriasScreen
 import com.example.lumvida.ui.Categorias.ui.CategoriasViewModel
 import com.example.lumvida.ui.CrearReporte.ui.CrearReporteScreen
 import com.example.lumvida.ui.CrearReporte.ui.CrearReporteViewModel
+import com.example.lumvida.ui.HistorialReportes.ui.HistorialReportesScreen
 import com.example.lumvida.ui.PerfilUsuario.PerfilUsuarioScreen
 import com.example.lumvida.ui.PerfilUsuario.PerfilUsuarioViewModel
+import com.example.lumvida.ui.Reportes.ui.MapScreen
 import com.example.lumvida.ui.crearcuenta.CrearCuentaScreen
 import com.example.lumvida.ui.login.ui.LoginScreen
 import com.example.lumvida.ui.theme.LumVivaTheme
 import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.osmdroid.util.GeoPoint
 
 class MainActivity : ComponentActivity() {
     private val authViewModel: AuthViewModel by viewModels() // Obtiene una instancia del ViewModel de autenticación.
@@ -108,6 +111,12 @@ fun LumVivaApp(authViewModel: AuthViewModel) { // Función principal de la aplic
                 viewModel = perfilUsuarioViewModel // Pasa el ViewModel de perfil de usuario.
             )
         }
+        composable("mis_reportes") {
+            HistorialReportesScreen(
+                navController = navController,
+                authViewModel = authViewModel
+            )
+        }
         composable("login") { // Ruta para la pantalla de inicio de sesión.
             LoginScreen(
                 navController = navController,
@@ -133,6 +142,19 @@ fun LumVivaApp(authViewModel: AuthViewModel) { // Función principal de la aplic
                 viewModel = categoriasViewModel // Pasa el ViewModel de categorías.
             )
         }
+
+        composable("mapa_general") {
+            MapScreen(
+                onLocationSelected = { _, _ -> }, // No necesitamos seleccionar ubicación en este caso
+                onDismiss = { navController.navigateUp() },
+                initialLocation = GeoPoint(18.5001889, -88.296146), // Centro de Chetumal
+                categoriasViewModel = viewModel(),
+                viewModel = viewModel(),
+                onNavigate = { route -> navController.navigate(route) },
+                isViewMode = true
+            )
+        }
+
         composable( // Ruta para crear un reporte con un argumento.
             route = "crear_reporte/{categoria}", // Define la ruta con un parámetro.
             arguments = listOf( // Define los argumentos de la ruta.

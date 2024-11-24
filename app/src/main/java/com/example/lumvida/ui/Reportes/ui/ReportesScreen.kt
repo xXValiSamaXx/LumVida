@@ -1,49 +1,58 @@
-package com.example.lumvida.ui.Reportes.ui // Define el paquete donde se encuentra esta clase.
+package com.example.lumvida.ui.Reportes.ui
 
-import androidx.compose.foundation.isSystemInDarkTheme // Importa la función para verificar si el sistema está en tema oscuro.
-import androidx.compose.foundation.layout.* // Importa las funciones para el manejo de layouts.
-import androidx.compose.material.icons.Icons // Importa la biblioteca de íconos.
-import androidx.compose.material.icons.filled.Person // Importa el ícono de persona.
-import androidx.compose.material3.* // Importa los componentes de Material 3.
-import androidx.compose.runtime.* // Importa las funciones para el estado y composición.
-import androidx.compose.ui.Alignment // Importa la clase para alinear elementos.
-import androidx.compose.ui.Modifier // Importa la clase para modificar componentes.
-import androidx.compose.ui.graphics.Color // Importa la clase para colores.
-import androidx.compose.ui.text.style.TextAlign // Importa la clase para la alineación de texto.
-import androidx.compose.ui.unit.dp // Importa la unidad de medida dp.
-import androidx.lifecycle.viewmodel.compose.viewModel // Importa la función para obtener ViewModels en composables.
-import androidx.navigation.NavController // Importa la clase para controlar la navegación.
-import com.example.lumvida.ui.Auth.ui.AuthViewModel // Importa el ViewModel de autenticación.
-import com.example.lumvida.ui.theme.* // Importa los temas definidos por el usuario.
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.example.lumvida.R
+import com.example.lumvida.ui.Auth.ui.AuthViewModel
+import com.example.lumvida.ui.theme.*
 
-@OptIn(ExperimentalMaterial3Api::class) // Indica que se utilizarán API experimentales de Material 3.
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportesScreen(
-    navController: NavController, // Controlador de navegación.
-    authViewModel: AuthViewModel, // ViewModel para manejar la autenticación.
-    reportesViewModel: ReportesViewModel = viewModel( // Obtiene una instancia del ViewModel de reportes.
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    reportesViewModel: ReportesViewModel = viewModel(
         factory = ReportesViewModel.Factory(authViewModel)
     ),
-    isDarkTheme: Boolean = isSystemInDarkTheme() // Verifica si el tema actual es oscuro.
+    isDarkTheme: Boolean = isSystemInDarkTheme()
 ) {
-    val userName by reportesViewModel.userName.collectAsState() // Colecciona el nombre del usuario.
-    val isAuthenticated by reportesViewModel.isAuthenticated.collectAsState() // Colecciona el estado de autenticación.
-    var showLoginDialog by remember { mutableStateOf(false) } // Estado para mostrar el diálogo de inicio de sesión.
+    val userName by reportesViewModel.userName.collectAsState()
+    val isAuthenticated by reportesViewModel.isAuthenticated.collectAsState()
+    var showLoginDialog by remember { mutableStateOf(false) }
+    var showingDialogFor by remember { mutableStateOf<String?>(null) }
 
-    // Muestra un diálogo si se necesita iniciar sesión.
+    // Diálogo de inicio de sesión
     if (showLoginDialog) {
         AlertDialog(
-            onDismissRequest = { showLoginDialog = false }, // Al cerrar el diálogo, oculta la ventana.
+            onDismissRequest = {
+                showLoginDialog = false
+                showingDialogFor = null
+            },
             title = {
                 Text(
                     "Iniciar sesión requerido",
                     style = MaterialTheme.typography.titleLarge,
-                    color = if (isDarkTheme) TextPrimary else PrimaryDark // Define el color según el tema.
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark
                 )
             },
             text = {
                 Text(
-                    "Para ver tus reportes necesitas iniciar sesión.",
+                    when (showingDialogFor) {
+                        "map" -> "Para ver el mapa de incidencias necesitas iniciar sesión."
+                        else -> "Para ver tus reportes necesitas iniciar sesión."
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                     color = if (isDarkTheme) TextPrimary else PrimaryDark
                 )
@@ -51,12 +60,13 @@ fun ReportesScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        showLoginDialog = false // Oculta el diálogo.
-                        navController.navigate("login") // Navega a la pantalla de inicio de sesión.
+                        showLoginDialog = false
+                        showingDialogFor = null
+                        navController.navigate("login")
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Primary,
-                        contentColor = TextPrimary // Define los colores del botón.
+                        contentColor = TextPrimary
                     )
                 ) {
                     Text(
@@ -67,7 +77,10 @@ fun ReportesScreen(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showLoginDialog = false }, // Cierra el diálogo sin hacer nada.
+                    onClick = {
+                        showLoginDialog = false
+                        showingDialogFor = null
+                    },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = if (isDarkTheme) TextPrimary else PrimaryDark
                     )
@@ -78,126 +91,152 @@ fun ReportesScreen(
                     )
                 }
             },
-            containerColor = if (isDarkTheme) PrimaryDark else Color.White // Define el color del contenedor según el tema.
+            containerColor = if (isDarkTheme) PrimaryDark else Color.White
         )
     }
 
-    // Contenedor de fondo con el tema adecuado.
     BackgroundContainer(isDarkTheme = isDarkTheme) {
         Column(
             modifier = Modifier
-                .fillMaxSize() // Toma todo el espacio disponible.
-                .padding(16.dp), // Agrega padding de 16dp.
-            horizontalAlignment = Alignment.CenterHorizontally // Alinea los elementos en el centro horizontalmente.
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header con TopAppBar
             TopAppBar(
                 title = {
                     Text(
-                        text = if (isAuthenticated) "Bienvenido, $userName" else "Bienvenido Invitado", // Mensaje de bienvenida basado en la autenticación.
+                        text = if (isAuthenticated) "Bienvenido, $userName" else "Bienvenido Invitado",
                         style = MaterialTheme.typography.titleLarge,
-                        color = if (isDarkTheme) TextPrimary else PrimaryDark // Define el color según el tema.
+                        color = if (isDarkTheme) TextPrimary else PrimaryDark
                     )
                 },
                 actions = {
-                    if (isAuthenticated) { // Si el usuario está autenticado, muestra el ícono de perfil.
+                    if (isAuthenticated) {
                         IconButton(
-                            onClick = { navController.navigate("usuario") } // Navega a la pantalla de usuario.
+                            onClick = { navController.navigate("usuario") }
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Person,
-                                contentDescription = "Perfil de usuario", // Descripción del ícono.
-                                tint = if (isDarkTheme) TextPrimary else PrimaryDark // Define el color del ícono según el tema.
+                                contentDescription = "Perfil de usuario",
+                                tint = if (isDarkTheme) TextPrimary else PrimaryDark
                             )
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent // Define el color de fondo del TopAppBar como transparente.
+                    containerColor = Color.Transparent
                 )
             )
 
-            Spacer(modifier = Modifier.height(32.dp)) // Espaciador para separar visualmente.
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Contenido principal
             Column(
-                modifier = Modifier.weight(1f), // Permite que la columna ocupe el espacio restante.
-                horizontalAlignment = Alignment.CenterHorizontally // Alinea los elementos en el centro horizontalmente.
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Haz un reporte", // Título principal de la sección.
+                    text = "Haz un reporte",
                     style = MaterialTheme.typography.displaySmall,
                     color = if (isDarkTheme) TextPrimary else PrimaryDark,
-                    textAlign = TextAlign.Center // Centra el texto.
+                    textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(16.dp)) // Espaciador.
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
                     text = "Si has presenciado o experimentado un problema urbano, como alumbrado público, drenajes obstruidos, mal estado de las calles o situaciones de riesgo, puedes informarnos sobre lo ocurrido.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = if (isDarkTheme) TextPrimary else PrimaryDark,
-                    textAlign = TextAlign.Center // Centra el texto.
+                    textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(24.dp)) // Espaciador.
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
-                    onClick = { navController.navigate("categorias") }, // Navega a la pantalla de categorías.
+                    onClick = { navController.navigate("categorias") },
                     modifier = Modifier
-                        .fillMaxWidth() // Ocupa todo el ancho.
-                        .height(48.dp), // Define la altura del botón.
+                        .fillMaxWidth()
+                        .height(48.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Primary,
-                        contentColor = TextPrimary // Define los colores del botón.
+                        contentColor = TextPrimary
                     )
                 ) {
                     Text(
-                        text = "Hacer Reporte", // Texto en el botón.
+                        text = "Hacer Reporte",
                         style = MaterialTheme.typography.labelLarge
                     )
                 }
 
-                Spacer(modifier = Modifier.height(40.dp)) // Espaciador.
+                Spacer(modifier = Modifier.height(40.dp))
 
                 Text(
-                    text = "Mis Reportes", // Título de la sección de reportes.
+                    text = "Mis Reportes",
                     style = MaterialTheme.typography.displaySmall,
                     color = if (isDarkTheme) TextPrimary else PrimaryDark,
-                    textAlign = TextAlign.Center // Centra el texto.
+                    textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(16.dp)) // Espaciador.
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
                     text = "Puedes ver y actualizar tus reportes en cualquier momento.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = if (isDarkTheme) TextPrimary else PrimaryDark,
-                    textAlign = TextAlign.Center // Centra el texto.
+                    textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(24.dp)) // Espaciador.
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
                     onClick = {
-                        if (isAuthenticated) { // Si el usuario está autenticado, navega a "mis reportes".
+                        if (isAuthenticated) {
                             navController.navigate("mis_reportes")
-                        } else { // Si no está autenticado, muestra el diálogo de inicio de sesión.
+                        } else {
+                            showingDialogFor = "reports"
                             showLoginDialog = true
                         }
                     },
                     modifier = Modifier
-                        .fillMaxWidth() // Ocupa todo el ancho.
-                        .height(48.dp), // Define la altura del botón.
+                        .fillMaxWidth()
+                        .height(48.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Primary,
-                        contentColor = TextPrimary // Define los colores del botón.
+                        contentColor = TextPrimary
                     )
                 ) {
                     Text(
-                        text = "Ver mis reportes", // Texto en el botón.
+                        text = "Ver mis reportes",
                         style = MaterialTheme.typography.labelLarge
                     )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                ) {
+                    FloatingActionButton(
+                        onClick = {
+                            if (isAuthenticated) {
+                                navController.navigate("mapa_general")
+                            } else {
+                                showingDialogFor = "map"
+                                showLoginDialog = true
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(48.dp),
+                        containerColor = Primary,
+                        contentColor = TextPrimary
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_map),
+                            contentDescription = "Ver mapa",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
         }
