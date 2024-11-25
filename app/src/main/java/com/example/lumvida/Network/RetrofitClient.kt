@@ -77,8 +77,9 @@ object RetrofitClient {
             }
             .addInterceptor(loggingInterceptor)
             .connectionSpecs(Arrays.asList(
-                ConnectionSpec.MODERN_TLS,  // Para conexiones HTTPS
-                ConnectionSpec.CLEARTEXT    // Para conexiones HTTP
+                ConnectionSpec.CLEARTEXT,  // Añadir esto para permitir HTTP
+                ConnectionSpec.MODERN_TLS,
+                ConnectionSpec.COMPATIBLE_TLS
             ))
             .connectTimeout(timeout, TimeUnit.SECONDS)
             .readTimeout(timeout, TimeUnit.SECONDS)
