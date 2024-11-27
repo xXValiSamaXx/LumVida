@@ -57,6 +57,7 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.google.gson.Gson
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
@@ -96,10 +97,10 @@ private val CHETUMAL_CONFIG = CityConfig(
 
 private val CANCUN_CONFIG = CityConfig(
     bounds = BoundingBox(
-        21.17, // North
-        -86.80, // East
-        21.12, // South
-        -86.87  // West
+        21.30, // North
+        -86.75, // East
+        20.95, // South
+        -86.95  // West
     ),
     center = GeoPoint(21.1483, -86.8339)
 )
@@ -127,7 +128,7 @@ private fun calcularDistancia(lat1: Double, lon1: Double, lat2: Double, lon2: Do
 private const val ZOOM_LEVEL_1 = 14.0  // Azul
 private const val ZOOM_LEVEL_2 = 16.0  // Verde
 private const val ZOOM_LEVEL_3 = 18.0  // Amarillo
-private const val ZOOM_LEVEL_4 = 20.0  // Rojo
+private const val ZOOM_LEVEL_4 = 22.0  // Rojo
 private const val CIRCLE_RADIUS = 0.00015 // Aproximadamente 15 metros
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -191,26 +192,16 @@ fun MapScreen(
     }
 
     fun createSimpleStreetOverlay(mapView: MapView, result: NominatimResponse) {
-        val point = GeoPoint(result.lat.toDouble(), result.lon.toDouble())
-
-        // Limpiar marcadores antiguos
-        mapView.overlays.removeAll { it is Marker && it.id == "search_marker" }
-
-        // Crear nuevo marcador
         val marker = Marker(mapView).apply {
-            id = "search_marker"
-            position = point
+            id = "search_overlay"
+            position = GeoPoint(result.lat.toDouble(), result.lon.toDouble())
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            icon = ContextCompat.getDrawable(mapView.context, R.drawable.ic_location_marker)?.apply {
+                setTint(android.graphics.Color.BLACK) // Siempre negro para marcadores simples
+            }
             title = result.displayName
-
-            val icon = ContextCompat.getDrawable(mapView.context, R.drawable.ic_location_marker)
-            icon?.setTint(android.graphics.Color.RED)
-            setIcon(icon)
         }
-
-        // Añadir marcador y actualizar mapa
         mapView.overlays.add(marker)
-        mapView.controller.animateTo(point)
         mapView.invalidate()
     }
 
@@ -229,203 +220,92 @@ fun MapScreen(
 
     // Añadir esta función para crear los diferentes tipos de overlays
     fun createSearchOverlay(mapView: MapView, result: NominatimResponse) {
-        scope.launch {
-            try {
-                // Limpiar overlays anteriores
-                mapView.overlays.removeAll { overlay ->
-                    when (overlay) {
-                        is org.osmdroid.views.overlay.Marker ->
-                            overlay.id in listOf("search_overlay", "search_overlay_start", "search_overlay_end")
-                        is org.osmdroid.views.overlay.Polyline ->
-                            overlay.id == "search_overlay"
-                        is org.osmdroid.views.overlay.Polygon ->
-                            overlay.id == "search_overlay"
-                        else -> false
-                    }
-                }
-                mapView.invalidate()
+        // Eliminar overlays anteriores inmediatamente
+        mapView.overlays.removeAll { overlay ->
+            when (overlay) {
+                is org.osmdroid.views.overlay.Marker ->
+                    overlay.id in listOf("search_overlay", "search_overlay_start", "search_overlay_end")
+                is org.osmdroid.views.overlay.Polyline ->
+                    overlay.id == "search_overlay"
+                is org.osmdroid.views.overlay.Polygon ->
+                    overlay.id == "search_overlay"
+                else -> false
+            }
+        }
+        mapView.invalidate()
 
-                // Obtener las coordenadas del resultado
-                val lat = result.lat.toDouble()
-                val lon = result.lon.toDouble()
+        val lat = result.lat.toDouble()
+        val lon = result.lon.toDouble()
 
-                // Determinar en qué ciudad está el punto
-                val config = when {
-                    CHETUMAL_CONFIG.bounds.contains(lat, lon) -> CHETUMAL_CONFIG
-                    CANCUN_CONFIG.bounds.contains(lat, lon) -> CANCUN_CONFIG
-                    else -> null
-                }
+        if (result.type.lowercase() in listOf("highway", "road", "path", "street", "pedestrian", "service", "residential")) {
+            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val query = OverpassService.buildStreetQuery(lat, lon, result.displayName.split(",")[0])
+                    val response = RetrofitClient.apiService.getStreetGeometry(query)
+                    val overpassResponse = Gson().fromJson(response.string(), OverpassResponse::class.java)
+                    val streetPoints = OverpassService.parseGeometryFromResponse(overpassResponse)
 
-                // Solo mostrar el marcador si está dentro de los límites de alguna ciudad
-                if (config != null) {
-                    when (result.type.lowercase()) {
-                        "highway", "road", "path", "street", "pedestrian", "service", "residential" -> {
-                            val query = OverpassService.buildStreetQuery(
-                                lat,
-                                lon,
-                                result.displayName.split(",")[0] // Tomar solo el nombre de la calle
-                            )
+                    withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        if (streetPoints.isNotEmpty()) {
+                            // Dibujar la línea y los marcadores inmediatamente
+                            val overlays = mutableListOf<org.osmdroid.views.overlay.Overlay>()
 
-                            val response = RetrofitClient.apiService.getStreetGeometry(query)
-                            val overpassResponse = Gson().fromJson(
-                                response.string(),
-                                OverpassResponse::class.java
-                            )
-
-                            val streetPoints = OverpassService.parseGeometryFromResponse(overpassResponse)
-
-                            if (streetPoints.isNotEmpty()) {
-                                val isInBounds = streetPoints.any { point ->
-                                    config.bounds.contains(point)
-                                }
-
-                                if (!isInBounds) {
-                                    // Si no está en los límites, centrar en el centro de la ciudad
-                                    mapView.controller.animateTo(config.center)
-                                    mapView.controller.setZoom(17.0)
-                                } else {
-                                    val polyline = org.osmdroid.views.overlay.Polyline().apply {
-                                        id = "search_overlay"
-                                        outlinePaint.color = android.graphics.Color.argb(180, 255, 0, 0)
-                                        outlinePaint.strokeWidth = 12f
-                                        setPoints(streetPoints)
-                                    }
-                                    mapView.overlays.add(polyline)
-
-                                    // Calcular los límites manualmente
-                                    var minLat = Double.MAX_VALUE
-                                    var maxLat = Double.MIN_VALUE
-                                    var minLon = Double.MAX_VALUE
-                                    var maxLon = Double.MIN_VALUE
-
-                                    streetPoints.forEach { point ->
-                                        minLat = minOf(minLat, point.latitude)
-                                        maxLat = maxOf(maxLat, point.latitude)
-                                        minLon = minOf(minLon, point.longitude)
-                                        maxLon = maxOf(maxLon, point.longitude)
-                                    }
-
-                                    // Calcular la longitud de la calle
-                                    val latSpan = maxLat - minLat
-                                    val lonSpan = maxLon - minLon
-
-                                    // Calcular el margen y zoom basado en la longitud de la calle
-                                    val marginFactor = when {
-                                        latSpan < 0.0005 || lonSpan < 0.0005 -> 0.5  // Calles muy cortas
-                                        latSpan < 0.001 || lonSpan < 0.001 -> 0.3    // Calles cortas
-                                        latSpan < 0.002 || lonSpan < 0.002 -> 0.2    // Calles medianas
-                                        else -> 0.1                                   // Calles largas
-                                    }
-
-                                    val latMargin = latSpan * marginFactor
-                                    val lonMargin = lonSpan * marginFactor
-
-                                    // Crear bounds limitado al área de la ciudad
-                                    val bounds = BoundingBox(
-                                        minOf(maxLat + latMargin, config.bounds.latNorth),  // north
-                                        minOf(maxLon + lonMargin, config.bounds.lonEast),   // east
-                                        maxOf(minLat - latMargin, config.bounds.latSouth),  // south
-                                        maxOf(minLon - lonMargin, config.bounds.lonWest)    // west
-                                    )
-
-                                    // Animar el mapa a los nuevos límites
-                                    mapView.zoomToBoundingBox(bounds, true, 50)
-
-                                    // Ajustar el zoom según la longitud de la calle
-                                    val currentZoom = mapView.zoomLevel
-                                    val targetZoom = when {
-                                        latSpan < 0.0005 || lonSpan < 0.0005 -> 19.0  // Calles muy cortas
-                                        latSpan < 0.001 || lonSpan < 0.001 -> 18.5    // Calles cortas
-                                        latSpan < 0.002 || lonSpan < 0.002 -> 18.0    // Calles medianas
-                                        latSpan < 0.004 || lonSpan < 0.004 -> 17.5    // Calles largas
-                                        else -> 17.0                                   // Calles muy largas
-                                    }
-
-                                    if (currentZoom < targetZoom) {
-                                        mapView.controller.setZoom(targetZoom)
-                                        mapView.controller.animateTo(GeoPoint(
-                                            (maxLat + minLat) / 2,
-                                            (maxLon + minLon) / 2
-                                        ))
-                                    }
-
-                                    // Agregar marcadores en los extremos de la calle
-                                    val startMarker = Marker(mapView).apply {
-                                        id = "search_overlay_start"
-                                        position = streetPoints.first()
-                                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                        icon = ContextCompat.getDrawable(mapView.context, R.drawable.ic_location_marker)?.apply {
-                                            setTint(android.graphics.Color.rgb(255, 0, 0))
-                                        }
-                                        title = "Inicio de ${result.displayName.split(",")[0]}"
-                                    }
-
-                                    val endMarker = Marker(mapView).apply {
-                                        id = "search_overlay_end"
-                                        position = streetPoints.last()
-                                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                        icon = ContextCompat.getDrawable(mapView.context, R.drawable.ic_location_marker)?.apply {
-                                            setTint(android.graphics.Color.rgb(255, 0, 0))
-                                        }
-                                        title = "Fin de ${result.displayName.split(",")[0]}"
-                                    }
-
-                                    mapView.overlays.add(startMarker)
-                                    mapView.overlays.add(endMarker)
-                                }
-                            } else {
-                                // Si no se encontraron puntos, usar el marcador simple
-                                createSimpleStreetOverlay(mapView, result)
-                            }
-                        }
-
-                        "house", "building", "amenity", "shop", "leisure" -> {
-                            val marker = Marker(mapView).apply {
+                            val polyline = org.osmdroid.views.overlay.Polyline().apply {
                                 id = "search_overlay"
-                                position = GeoPoint(lat, lon)
+                                outlinePaint.color = android.graphics.Color.RED
+                                outlinePaint.strokeWidth = 12f
+                                setPoints(streetPoints)
+                            }
+                            overlays.add(polyline)
+
+                            val startMarker = Marker(mapView).apply {
+                                id = "search_overlay_start"
+                                position = streetPoints.first()
                                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                                 icon = ContextCompat.getDrawable(mapView.context, R.drawable.ic_location_marker)?.apply {
-                                    setTint(android.graphics.Color.rgb(255, 0, 0))
+                                    setTint(android.graphics.Color.RED)
                                 }
-                                title = result.displayName
+                                title = "Inicio de ${result.displayName.split(",")[0]}"
                             }
-                            mapView.overlays.add(marker)
-                        }
+                            overlays.add(startMarker)
 
-                        "suburb", "neighbourhood", "residential" -> {
-                            val polygon = org.osmdroid.views.overlay.Polygon().apply {
-                                id = "search_overlay"
-                                points = createNeighborhoodCircle(GeoPoint(lat, lon))
-                                fillColor = android.graphics.Color.argb(30, 0, 255, 0)
-                                strokeColor = android.graphics.Color.rgb(0, 255, 0)
-                                strokeWidth = 3f
-                            }
-                            mapView.overlays.add(polygon)
-                        }
-
-                        else -> {
-                            val marker = Marker(mapView).apply {
-                                id = "search_overlay"
-                                position = GeoPoint(lat, lon)
+                            val endMarker = Marker(mapView).apply {
+                                id = "search_overlay_end"
+                                position = streetPoints.last()
                                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                icon = ContextCompat.getDrawable(mapView.context, R.drawable.ic_location_marker)
-                                title = result.displayName
+                                icon = ContextCompat.getDrawable(mapView.context, R.drawable.ic_location_marker)?.apply {
+                                    setTint(android.graphics.Color.RED)
+                                }
+                                title = "Fin de ${result.displayName.split(",")[0]}"
                             }
-                            mapView.overlays.add(marker)
+                            overlays.add(endMarker)
+
+                            mapView.overlays.addAll(overlays)
+                            mapView.invalidate()
+                        } else {
+                            createSimpleStreetOverlay(mapView, result)
                         }
                     }
-                }
-                mapView.invalidate()
-            } catch (e: Exception) {
-                Log.e("MapScreen", "Error al obtener geometría de la calle", e)
-                // Si algo falla, usar el marcador simple como respaldo
-                val lat = result.lat.toDouble()
-                val lon = result.lon.toDouble()
-                if (CHETUMAL_CONFIG.bounds.contains(lat, lon) ||
-                    CANCUN_CONFIG.bounds.contains(lat, lon)) {
-                    createSimpleStreetOverlay(mapView, result)
+                } catch (e: Exception) {
+                    Log.e("MapScreen", "Error al obtener geometría de la calle", e)
+                    withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        createSimpleStreetOverlay(mapView, result)
+                    }
                 }
             }
+        } else {
+            // Para tipos que no son calles
+            val marker = Marker(mapView).apply {
+                id = "search_overlay"
+                position = GeoPoint(lat, lon)
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                icon = ContextCompat.getDrawable(mapView.context, R.drawable.ic_location_marker)?.apply {
+                    setTint(android.graphics.Color.BLACK)
+                }
+                title = result.displayName
+            }
+            mapView.overlays.add(marker)
+            mapView.invalidate()
         }
     }
 
@@ -482,13 +362,29 @@ fun MapScreen(
     LaunchedEffect(viewModel.filteredReportes, viewModel.selectedCategory) {
         mapView?.let { map ->
             try {
-                map.overlays.removeAll { it is Marker || it is org.osmdroid.views.overlay.Polygon }
+                // Guardar los overlays de búsqueda antes de limpiar
+                val searchOverlays = map.overlays.filter { overlay ->
+                    when (overlay) {
+                        is Marker -> overlay.id in listOf("search_overlay", "search_overlay_start", "search_overlay_end")
+                        is org.osmdroid.views.overlay.Polyline -> overlay.id == "search_overlay"
+                        else -> false
+                    }
+                }
+
+                // Limpiar todos los overlays excepto el de ubicación
+                map.overlays.removeAll { overlay ->
+                    !(overlay is MyLocationNewOverlay)
+                }
+
+                // Restaurar los overlays de búsqueda
+                map.overlays.addAll(searchOverlays)
+
                 val reportesToShow = viewModel.filteredReportes
 
                 // Lista para mantener referencia a los círculos
                 val circles = mutableListOf<org.osmdroid.views.overlay.Polygon>()
 
-                // Añadir marcadores y círculos
+                // Añadir marcadores y círculos de reportes
                 reportesToShow.forEach { reporte ->
                     // Crear el círculo
                     val circle = org.osmdroid.views.overlay.Polygon().apply {
@@ -529,7 +425,7 @@ fun MapScreen(
                                 InfoWindow.closeAllInfoWindowsOn(mapView)
                                 clickedMarker.showInfoWindow()
                                 mapView.controller.animateTo(clickedMarker.position)
-                                mapView.controller.setZoom(21.0)
+                                mapView.controller.setZoom(22.0)
                                 true
                             } catch (e: Exception) {
                                 Log.e("MapScreen", "Error al mostrar InfoWindow", e)
@@ -580,20 +476,18 @@ fun MapScreen(
 
     // Función para buscar sugerencias usando Nominatim
     fun getSuggestions(query: String) {
-        if (query.length >= 3) {
+        if (query.length >= 1) {
             scope.launch {
                 try {
                     isSearching = true
-
-                    // Obtener la ubicación actual
+                    // Obtener ubicación actual para determinar la ciudad
                     getCurrentLocation(context)?.let { location ->
                         val ciudad = when {
                             CHETUMAL_CONFIG.bounds.contains(location.latitude, location.longitude) -> "Chetumal"
                             CANCUN_CONFIG.bounds.contains(location.latitude, location.longitude) -> "Cancun"
-                            else -> "Chetumal" // Por defecto
+                            else -> "Chetumal" // Default a Chetumal si no está en ninguna
                         }
 
-                        // Realizar la búsqueda en la ciudad correspondiente
                         val results = RetrofitClient.nominatimService.searchLocation(
                             query = "$query, $ciudad, Quintana Roo"
                         )
@@ -614,29 +508,36 @@ fun MapScreen(
         }
     }
 
+    // Variable para mantener el servicio de búsqueda cacheado
+    var nominatimService = RetrofitClient.nominatimService
+
     // Función para buscar ubicación usando Nominatim
     fun searchLocation(query: String) {
         scope.launch {
-            var location: NominatimResponse? = null
-
             try {
                 isSearching = true
-
-                val results = RetrofitClient.nominatimService.searchLocation(
-                    query = query,
-                    limit = 1
-                )
-
+                val results = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    nominatimService.searchLocation(
+                        query = query,
+                        limit = 1
+                    )
+                }
                 if (results.isNotEmpty()) {
-                    location = results[0]
-                    val map = mapView ?: return@launch
+                    val location = results[0]
 
-                    // Limpiar overlays anteriores primero
-                    map.overlays.removeAll { it is Marker || it is org.osmdroid.views.overlay.Polyline }
+                    // Desactivar el seguimiento de ubicación antes de mover el mapa
+                    mapView?.let { map ->
+                        (map.overlays?.find { it is MyLocationNewOverlay } as? MyLocationNewOverlay)?.disableFollowLocation()
+                    }
 
-                    when (location.type.lowercase()) {
-                        // Para calles y caminos
-                        "highway", "road", "path", "street", "pedestrian", "service", "residential" -> {
+                    val point = GeoPoint(
+                        location.lat.toDouble(),
+                        location.lon.toDouble()
+                    )
+
+                    // Si es una calle, procesamos su geometría inmediatamente
+                    if (location.type.lowercase() in listOf("highway", "road", "path", "street", "pedestrian", "service", "residential")) {
+                        withContext(kotlinx.coroutines.Dispatchers.IO) {
                             val query = OverpassService.buildStreetQuery(
                                 location.lat.toDouble(),
                                 location.lon.toDouble(),
@@ -644,69 +545,33 @@ fun MapScreen(
                             )
 
                             val response = RetrofitClient.apiService.getStreetGeometry(query)
-                            val overpassResponse = Gson().fromJson(
-                                response.string(),
-                                OverpassResponse::class.java
-                            )
-
+                            val overpassResponse = Gson().fromJson(response.string(), OverpassResponse::class.java)
                             val streetPoints = OverpassService.parseGeometryFromResponse(overpassResponse)
 
-                            if (streetPoints.isNotEmpty()) {
-                                // Dibujar la línea de la calle
-                                val polyline = org.osmdroid.views.overlay.Polyline().apply {
-                                    outlinePaint.color = android.graphics.Color.RED
-                                    outlinePaint.strokeWidth = 10f
-                                    setPoints(streetPoints)
+                            withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                if (streetPoints.isNotEmpty()) {
+                                    mapView?.let { map ->
+                                        val bounds = BoundingBox.fromGeoPoints(streetPoints)
+                                        map.zoomToBoundingBox(bounds, false)
+                                        createSearchOverlay(map, location)
+                                    }
+                                } else {
+                                    mapView?.controller?.animateTo(point)
+                                    mapView?.controller?.setZoom(21.0)
+                                    mapView?.let { createSearchOverlay(it, location) }
                                 }
-                                map.overlays.add(polyline)
-
-                                // Añadir marcadores en los extremos
-                                val startMarker = Marker(map).apply {
-                                    position = streetPoints.first()
-                                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                    title = "Inicio de ${location.displayName.split(",")[0]}"
-                                    val icon = ContextCompat.getDrawable(context, R.drawable.ic_location_marker)
-                                    //icon = ContextCompat.getDrawable(mapView.context, R.drawable.ic_location_marker)
-                                    icon?.setTint(android.graphics.Color.RED)
-                                    setIcon(icon)
-                                }
-
-                                val endMarker = Marker(map).apply {
-                                    position = streetPoints.last()
-                                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                    title = "Fin de ${location.displayName.split(",")[0]}"
-                                    val icon = ContextCompat.getDrawable(context, R.drawable.ic_location_marker)
-                                    icon?.setTint(android.graphics.Color.RED)
-                                    setIcon(icon)
-                                }
-
-                                map.overlays.add(startMarker)
-                                map.overlays.add(endMarker)
-
-                                // Calcular los límites para centrar la vista
-                                val bounds = BoundingBox.fromGeoPoints(streetPoints)
-                                map.zoomToBoundingBox(bounds, true, 100)
-                                // Ajustar zoom adicional
-                                map.controller.setZoom(18.0)
-                            } else {
-                                createSimpleStreetOverlay(map, location)
                             }
                         }
-
-                        else -> {
-                            createSimpleStreetOverlay(map, location)
-                        }
+                    } else {
+                        // Para ubicaciones que no son calles
+                        mapView?.controller?.animateTo(point)
+                        mapView?.controller?.setZoom(21.0)
+                        mapView?.let { createSearchOverlay(it, location) }
                     }
-
-                    map.invalidate()
                     showSuggestions = false
                 }
             } catch (e: Exception) {
                 Log.e("MapScreen", "Error searching location", e)
-                val map = mapView
-                if (location != null && map != null) {
-                    createSimpleStreetOverlay(map, location)
-                }
             } finally {
                 isSearching = false
             }
@@ -797,18 +662,18 @@ fun MapScreen(
                         maxZoomLevel = ZOOM_LEVEL_4
                         minZoomLevel = ZOOM_LEVEL_1
 
-                        // Centrar el mapa
-                        if (config.bounds.contains(lat, lon)) {
-                            controller.setCenter(GeoPoint(lat, lon))
-                        } else {
-                            controller.setCenter(config.center)
-                        }
-                        controller.setZoom(config.defaultZoom)
+                        // Centrar inmediatamente en la ubicación del usuario
+                        controller.setCenter(GeoPoint(lat, lon))
+                        controller.setZoom(18.0) // Zoom más cercano para ver mejor la ubicación
 
                         // Añadir overlay de ubicación
                         val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), this)
                         locationOverlay.enableMyLocation()
                         overlays.add(locationOverlay)
+                    }?: run {
+                        // Si no se puede obtener la ubicación, centrar en el centro de la ciudad por defecto
+                        controller.setCenter(CHETUMAL_CONFIG.center)
+                        controller.setZoom(CHETUMAL_CONFIG.defaultZoom)
                     }
                 }
             },
@@ -933,6 +798,9 @@ fun MapScreen(
                             currentLocation = GeoPoint(location.latitude, location.longitude)
                             mapView?.controller?.animateTo(currentLocation)
                             mapView?.controller?.setZoom(18.0)
+
+                            // Activar el seguimiento solo cuando se presiona el botón
+                            (mapView?.overlays?.find { it is MyLocationNewOverlay } as? MyLocationNewOverlay)?.enableFollowLocation()
                         }
                     }
                 ) {
@@ -991,7 +859,7 @@ private fun SearchBar(
     showSuggestions: Boolean,
     onShowSuggestionsChange: (Boolean) -> Unit
 ) {
-    val context = LocalContext.current // Obtener el contexto local
+    val context = LocalContext.current
 
     Row(
         modifier = modifier,
@@ -1049,19 +917,17 @@ private fun SearchBar(
                         onClick = {
                             onSearchQueryChange("")
                             mapView?.let { map ->
-                                // Limpiar todos los overlays de búsqueda
-                                map.overlays.removeAll { overlay ->
+                                InfoWindow.closeAllInfoWindowsOn(map)
+                                map.overlays?.removeAll { overlay ->
                                     when (overlay) {
-                                        is Marker -> true
-                                        is org.osmdroid.views.overlay.Polyline -> true
-                                        is org.osmdroid.views.overlay.Polygon -> true
+                                        is org.osmdroid.views.overlay.Marker ->
+                                            overlay.id in listOf("search_overlay", "search_overlay_start", "search_overlay_end")
+                                        is org.osmdroid.views.overlay.Polyline ->
+                                            overlay.id == "search_overlay"
+                                        is org.osmdroid.views.overlay.Polygon ->
+                                            overlay.id == "search_overlay"
                                         else -> false
                                     }
-                                }
-                                // Restaurar el zoom y la posición original
-                                map.controller.setZoom(15.0)
-                                getCurrentLocation(context)?.let { location ->
-                                    map.controller.animateTo(GeoPoint(location.latitude, location.longitude))
                                 }
                                 map.invalidate()
                             }
@@ -1112,7 +978,9 @@ private fun SearchBar(
                         onShowCategoriesMenu(false)
                         InfoWindow.closeAllInfoWindowsOn(mapView)
                         viewModel.updateSelectedCategory(null)
-                        mapView?.let { map -> onCenterMap(map, viewModel.reportes) }
+                        mapView?.let { map ->
+                            onCenterMap(map, viewModel.reportes)
+                        }
                     },
                     text = {
                         Row(
@@ -1145,7 +1013,9 @@ private fun SearchBar(
                             onShowCategoriesMenu(false)
                             InfoWindow.closeAllInfoWindowsOn(mapView)
                             viewModel.updateSelectedCategory(categoria.titulo)
-                            mapView?.let { map -> onCenterMap(map, viewModel.filteredReportes) }
+                            mapView?.let { map ->
+                                onCenterMap(map, viewModel.filteredReportes)
+                            }
                         },
                         text = {
                             Row(

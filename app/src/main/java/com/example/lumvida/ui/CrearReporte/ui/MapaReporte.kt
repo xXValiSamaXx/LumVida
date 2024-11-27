@@ -63,11 +63,32 @@ import org.osmdroid.views.overlay.infowindow.InfoWindow
 //Constantes de limites de chetumal
 private const val MIN_ZOOM = 14.0
 private const val MAX_ZOOM = 21.0
-private val CHETUMAL_BOUNDS = BoundingBox(
-    18.55, // North
-    -88.25, // East
-    18.45, // South
-    -88.35  // West
+
+//Constantes de limites
+private val CHETUMAL_CONFIG = CityConfig(
+    bounds = BoundingBox(
+        18.55, // North
+        -88.25, // East
+        18.45, // South
+        -88.35  // West
+    ),
+    center = GeoPoint(18.5001889, -88.296146)
+)
+
+private val CANCUN_CONFIG = CityConfig(
+    bounds = BoundingBox(
+        21.30, // North
+        -86.75, // East
+        20.95, // South
+        -86.95  // West
+    ),
+    center = GeoPoint(21.1483, -86.8339)
+)
+
+data class CityConfig(
+    val bounds: BoundingBox,
+    val center: GeoPoint,
+    val defaultZoom: Double = 15.0
 )
 
 @Composable
@@ -174,41 +195,63 @@ fun MapaReporte(
             factory = { context ->
                 MapView(context).apply {
                     setTileSource(TileSourceFactory.MAPNIK)
-                    setMultiTouchControls(true)
+                    setMultiTouchControls(true)  // Cambiado a false para permitir movimiento con un dedo
+                    isClickable = true  // Asegura que el mapa responde a toques
                     setBuiltInZoomControls(false)
                     setHorizontalMapRepetitionEnabled(false)
                     setVerticalMapRepetitionEnabled(false)
 
-                    // Mejorar el rendimiento del mapa
-                    setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
-                    isFlingEnabled = true
-                    maxZoomLevel = MAX_ZOOM
-                    minZoomLevel = MIN_ZOOM
-                    setScrollableAreaLimitLatitude(
-                        CHETUMAL_BOUNDS.latNorth,
-                        CHETUMAL_BOUNDS.latSouth,
-                        0
-                    )
-                    setScrollableAreaLimitLongitude(
-                        CHETUMAL_BOUNDS.lonWest,
-                        CHETUMAL_BOUNDS.lonEast,
-                        0
-                    )
-
-                    controller.setZoom(20.0)
-
-                    val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), this)
-                    locationOverlay.enableMyLocation()
-                    overlays.add(locationOverlay)
-
-                    // Centrar en la ubicación actual al inicio
+                    // Configurar ubicación actual
                     getCurrentLocation(context)?.let { location ->
-                        val point = GeoPoint(location.latitude, location.longitude)
-                        controller.setCenter(point)
-                        controller.animateTo(point)
+                        val lat = location.latitude
+                        val lon = location.longitude
+
+                        // Determinar qué configuración usar basado en la ubicación
+                        val config = when {
+                            CHETUMAL_CONFIG.bounds.contains(lat, lon) -> CHETUMAL_CONFIG
+                            CANCUN_CONFIG.bounds.contains(lat, lon) -> CANCUN_CONFIG
+                            else -> CHETUMAL_CONFIG
+                        }
+
+                        // Aplicar límites según la ciudad
+                        setScrollableAreaLimitLatitude(
+                            config.bounds.latNorth,
+                            config.bounds.latSouth,
+                            0
+                        )
+                        setScrollableAreaLimitLongitude(
+                            config.bounds.lonWest,
+                            config.bounds.lonEast,
+                            0
+                        )
+
+                        // Resto de la configuración
+                        setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+                        isFlingEnabled = true
+                        maxZoomLevel = MAX_ZOOM
+                        minZoomLevel = MIN_ZOOM
+
+                        controller.setZoom(20.0)
+                        controller.setCenter(GeoPoint(lat, lon))
+                        controller.animateTo(GeoPoint(lat, lon))
+
+                        val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), this)
+                        locationOverlay.enableMyLocation()
+                        overlays.add(locationOverlay)
                     } ?: run {
-                        // Si no hay ubicación, centrar en Chetumal
-                        controller.setCenter(GeoPoint(18.5001889, -88.296146))
+                        // Si no hay ubicación, centrar en Chetumal por defecto
+                        controller.setCenter(CHETUMAL_CONFIG.center)
+                        controller.setZoom(CHETUMAL_CONFIG.defaultZoom)
+                        setScrollableAreaLimitLatitude(
+                            CHETUMAL_CONFIG.bounds.latNorth,
+                            CHETUMAL_CONFIG.bounds.latSouth,
+                            0
+                        )
+                        setScrollableAreaLimitLongitude(
+                            CHETUMAL_CONFIG.bounds.lonWest,
+                            CHETUMAL_CONFIG.bounds.lonEast,
+                            0
+                        )
                     }
 
                     mapView = this
@@ -586,19 +629,25 @@ private fun SearchLocationModal(
             scope.launch {
                 try {
                     isSearching = true
-                    val results = RetrofitClient.nominatimService.searchLocation(
-                        query = "$query, Chetumal, Quintana Roo"
-                    )
-                    searchSuggestions = results  // Cambiado de suggestions a searchSuggestions
+                    getCurrentLocation(context)?.let { location ->
+                        val ciudad = when {
+                            CHETUMAL_CONFIG.bounds.contains(location.latitude, location.longitude) -> "Chetumal"
+                            CANCUN_CONFIG.bounds.contains(location.latitude, location.longitude) -> "Cancun"
+                            else -> "Chetumal" // Default a Chetumal si no está en ninguna
+                        }
+
+                        val results = RetrofitClient.nominatimService.searchLocation(
+                            query = "$query, $ciudad, Quintana Roo"
+                        )
+                        searchSuggestions = results
+                    }
                 } catch (e: Exception) {
                     Log.e("SearchLocationModal", "Error getting suggestions", e)
-                    searchSuggestions = emptyList()  // Cambiado de suggestions a searchSuggestions
+                    searchSuggestions = emptyList()
                 } finally {
                     isSearching = false
                 }
             }
-        } else {
-            searchSuggestions = emptyList()  // Cambiado de suggestions a searchSuggestions
         }
     }
 

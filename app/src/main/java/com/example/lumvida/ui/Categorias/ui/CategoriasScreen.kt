@@ -104,7 +104,7 @@ fun CategoriasScreen(
                     wasDisconnected = true
                 } else {
                     // Se recuperó la conexión
-                    wasDisconnected = false
+                    wasDisconnected = true
                 }
                 isConnected = connectionState
             }
