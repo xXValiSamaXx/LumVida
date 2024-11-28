@@ -36,7 +36,7 @@ import kotlinx.coroutines.delay
 import java.io.File
 import androidx.core.content.FileProvider
 import com.example.lumvida.ui.Categorias.ui.CategoriasViewModel
-import com.example.lumvida.ui.Reportes.ui.MapScreen
+import com.example.lumvida.ui.Reportes.ui.MapaIncidenciasScreen
 import org.osmdroid.util.GeoPoint
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)

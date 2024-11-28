@@ -73,54 +73,57 @@ class AuthViewModel : ViewModel() {
             try {
                 _authState.value = AuthState.Loading
 
-                // Validación más estricta de la cuenta
-                if (account == null) {
+                if (account == null || account.idToken == null) {
                     _authState.value = AuthState.Error("No se pudo obtener la cuenta de Google")
                     return@launch
                 }
 
-                if (account.idToken == null) {
-                    _authState.value = AuthState.Error("No se pudo obtener el token de autenticación")
-                    return@launch
-                }
-
-                // Crear credencial
                 val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+                val result = auth.signInWithCredential(credential).await()
 
-                try {
-                    // Intentar autenticación con Firebase
-                    val result = auth.signInWithCredential(credential).await()
+                result.user?.let { user ->
+                    val userDoc = db.collection("usuarios").document(user.uid).get().await()
 
-                    result.user?.let { user ->
-                        // Verificar si el usuario ya existe
-                        val userDoc = db.collection("usuarios").document(user.uid).get().await()
-
-                        if (!userDoc.exists()) {
-                            // Crear nuevo usuario
-                            val usuario = Usuario(
-                                uid = user.uid,
-                                email = account.email ?: "",
-                                nombre = account.displayName ?: "",
-                                provider = AuthProvider.GOOGLE,
-                                telefono = "",
-                                createdAt = System.currentTimeMillis()
-                            )
-
-                            db.collection("usuarios")
-                                .document(user.uid)
-                                .set(usuario)
-                                .await()
+                    if (!userDoc.exists()) {
+                        _authState.value = AuthState.NeedsPhoneNumber(user)
+                    } else {
+                        val userData = userDoc.data
+                        val telefono = userData?.get("telefono") as? String
+                        if (telefono == null || telefono.isBlank()) {
+                            _authState.value = AuthState.NeedsPhoneNumber(user)
+                        } else {
+                            _authState.value = AuthState.Authenticated(user)
                         }
-
-                        _authState.value = AuthState.Authenticated(user)
-                    } ?: throw Exception("No se pudo obtener información del usuario")
-
-                } catch (e: Exception) {
-                    _authState.value = AuthState.Error("Error al autenticar con Firebase: ${e.message}")
+                    }
                 }
-
             } catch (e: Exception) {
-                _authState.value = AuthState.Error("Error en el inicio de sesión con Google: ${e.message}")
+                _authState.value = AuthState.Error(e.message ?: "Error de autenticación")
+            }
+        }
+    }
+
+    fun updateUserPhone(user: FirebaseUser, phone: String) {
+        viewModelScope.launch {
+            try {
+                _authState.value = AuthState.Loading
+
+                val usuario = Usuario(
+                    uid = user.uid,
+                    email = user.email ?: "",
+                    nombre = user.displayName ?: "",
+                    provider = AuthProvider.GOOGLE,
+                    telefono = phone,
+                    createdAt = System.currentTimeMillis()
+                )
+
+                db.collection("usuarios")
+                    .document(user.uid)
+                    .set(usuario)
+                    .await()
+
+                _authState.value = AuthState.Authenticated(user)
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error("Error al guardar el teléfono: ${e.message}")
             }
         }
     }
@@ -160,6 +163,7 @@ sealed class AuthState {
     object Initial : AuthState()
     object Loading : AuthState()
     data class Authenticated(val user: FirebaseUser) : AuthState()
+    data class NeedsPhoneNumber(val user: FirebaseUser) : AuthState()
     object Unauthenticated : AuthState()
     object ResetPasswordSent : AuthState()
     data class Error(val message: String) : AuthState()

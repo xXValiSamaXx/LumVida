@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope // Importa el scope de corutinas para e
 import com.example.lumvida.ui.Auth.ui.AuthState // Importa el estado de autenticación desde AuthState.
 import com.example.lumvida.ui.Auth.ui.AuthViewModel // Importa el ViewModel de autenticación.
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount // Importa la cuenta de Google para el inicio de sesión.
+import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.MutableStateFlow // Importa la clase para flujos de estado mutables.
 import kotlinx.coroutines.flow.StateFlow // Importa la interfaz de flujo de estado.
 import kotlinx.coroutines.launch // Importa la función para lanzar corutinas.
@@ -18,6 +19,7 @@ class LoginViewModel(private val authViewModel: AuthViewModel) : ViewModel() { /
         viewModelScope.launch { // Inicia una corutina en el scope del ViewModel.
             authViewModel.authState.collect { authState -> // Recolecta el estado de autenticación desde el AuthViewModel.
                 _loginState.value = when (authState) { // Actualiza el estado de inicio de sesión basado en el estado de autenticación.
+                    is AuthState.NeedsPhoneNumber -> LoginState.NeedsPhoneNumber(authState.user)
                     is AuthState.Initial -> LoginState.Initial // Si el estado es "Initial", asigna "Initial" al estado de inicio de sesión.
                     is AuthState.Loading -> LoginState.Loading // Si el estado es "Loading", asigna "Loading".
                     is AuthState.Authenticated -> LoginState.Success // Si el usuario está autenticado, asigna "Success".
@@ -27,6 +29,14 @@ class LoginViewModel(private val authViewModel: AuthViewModel) : ViewModel() { /
                 }
             }
         }
+    }
+
+    fun submitPhoneNumber(user: FirebaseUser, phone: String) {
+        if (phone.isBlank()) {
+            _loginState.value = LoginState.Error("El teléfono no puede estar vacío")
+            return
+        }
+        authViewModel.updateUserPhone(user, phone)
     }
 
     // Función para manejar el inicio de sesión con correo y contraseña.
@@ -70,8 +80,9 @@ class LoginViewModel(private val authViewModel: AuthViewModel) : ViewModel() { /
 
 // Clase sellada que representa los diferentes estados de inicio de sesión.
 sealed class LoginState {
-    object Initial : LoginState() // Estado inicial.
-    object Loading : LoginState() // Estado de carga.
-    object Success : LoginState() // Estado de éxito en el inicio de sesión.
-    data class Error(val message: String) : LoginState() // Estado de error con un mensaje.
+    object Initial : LoginState()
+    object Loading : LoginState()
+    object Success : LoginState()
+    data class NeedsPhoneNumber(val user: FirebaseUser) : LoginState()
+    data class Error(val message: String) : LoginState()
 }

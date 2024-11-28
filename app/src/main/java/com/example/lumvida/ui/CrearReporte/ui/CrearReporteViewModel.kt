@@ -12,7 +12,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.lumvida.data.db.RecentSearchEntity
 import com.example.lumvida.data.model.RecentSearch
 import com.example.lumvida.data.repository.SearchHistoryRepository
 import com.example.lumvida.network.model.NominatimResponse

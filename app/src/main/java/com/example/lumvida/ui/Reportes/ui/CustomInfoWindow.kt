@@ -1,13 +1,8 @@
 package com.example.lumvida.ui.Reportes.ui
 
 import android.util.Log
-import android.widget.ImageView
 import android.widget.TextView
-import coil.load
-import coil.request.CachePolicy
-import coil.transform.RoundedCornersTransformation
 import com.example.lumvida.R
-import com.example.lumvida.ui.CrearReporte.ui.CrearReporteViewModel
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.infowindow.InfoWindow
@@ -21,7 +16,7 @@ class CustomInfoWindow(
     override fun onOpen(item: Any?) {
         try {
             val marker = item as? Marker ?: return
-            val reporte = marker.relatedObject as? CrearReporteViewModel.ReporteMap ?: return
+            val reporte = marker.relatedObject as? MapaIncidenciasViewModel.ReporteMap ?: return
 
             // Añadir listener para cerrar al tocar
             view.setOnClickListener {
@@ -32,7 +27,7 @@ class CustomInfoWindow(
             view.findViewById<TextView>(R.id.tvFolio)?.text = "Folio: ${reporte.folio}"
             view.findViewById<TextView>(R.id.tvCategoria)?.text = "🏷️ Categoría: ${reporte.categoria}"
             view.findViewById<TextView>(R.id.tvDireccion)?.text = "📍 Dirección: ${reporte.direccion}"
-            view.findViewById<TextView>(R.id.tvComentario)?.text = "💬 Comentario: ${reporte.comentario}"
+            view.findViewById<TextView>(R.id.tvComentario)?.text = "💬 Descripción: ${reporte.descripcion}"
             view.findViewById<TextView>(R.id.tvFecha)?.text = "📅 Fecha: ${formatearFecha(reporte.fecha)}"
             view.findViewById<TextView>(R.id.tvEstado)?.text = "📊 Estado: ${reporte.estado}"
 
@@ -43,7 +38,6 @@ class CustomInfoWindow(
 
     override fun onClose() {
         try {
-            // Limpiar la imagen y el listener
             view.setOnClickListener(null)
         } catch (e: Exception) {
             Log.e("CustomInfoWindow", "Error al cerrar InfoWindow", e)

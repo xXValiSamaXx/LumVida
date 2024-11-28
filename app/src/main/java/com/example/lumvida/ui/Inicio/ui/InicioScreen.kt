@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -27,7 +28,8 @@ fun InicioScreen(
     navController: NavController,
     isDarkTheme: Boolean = isSystemInDarkTheme()
 ) {
-    // Estado para los permisos múltiples
+    val context = LocalContext.current
+
     val permissionsState = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.CAMERA,
@@ -36,46 +38,29 @@ fun InicioScreen(
         )
     )
 
-    // Estado para controlar si mostrar el diálogo de permisos
-    var showPermissionsDialog by remember { mutableStateOf(true) }
+    val showPermissionsDialog = remember { mutableStateOf(true) }
+
+    // Memorizar recursos
+    val logoImageRes = remember(isDarkTheme) {
+        if (isDarkTheme) R.drawable.logo_blanco else R.drawable.logo_rojo
+    }
+
+    // Memorizar ImageRequest con el contexto correcto
+    val imageRequest = remember(logoImageRes) {
+        ImageRequest.Builder(context)
+            .data(logoImageRes)
+            .crossfade(true)
+            .build()
+    }
 
     BackgroundContainer(isDarkTheme = isDarkTheme) {
-        // Diálogo de permisos
-        if (showPermissionsDialog && !permissionsState.allPermissionsGranted) {
-            AlertDialog(
-                onDismissRequest = { /* El usuario no puede cerrar el diálogo tocando fuera */ },
-                title = {
-                    Text(
-                        "Permisos necesarios",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = if (isDarkTheme) TextPrimary else PrimaryDark
-                    )
+        if (showPermissionsDialog.value && !permissionsState.allPermissionsGranted) {
+            PermissionsDialog(
+                onConfirm = {
+                    permissionsState.launchMultiplePermissionRequest()
+                    showPermissionsDialog.value = false
                 },
-                text = {
-                    Text(
-                        text = "Para usar LumVida necesitamos:\n\n" +
-                                "• Cámara: Para tomar fotos de los problemas urbanos\n" +
-                                "• Ubicación: Para identificar dónde ocurren los problemas\n\n" +
-                                "Estos permisos son necesarios para el funcionamiento correcto de la aplicación.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (isDarkTheme) TextPrimary else PrimaryDark
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            permissionsState.launchMultiplePermissionRequest()
-                            showPermissionsDialog = false
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Primary,
-                            contentColor = TextPrimary
-                        )
-                    ) {
-                        Text("Conceder permisos")
-                    }
-                },
-                containerColor = if (isDarkTheme) PrimaryDark else Color.White
+                isDarkTheme = isDarkTheme
             )
         }
 
@@ -86,54 +71,101 @@ fun InicioScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Logo
-            val logoImageRes = if (isDarkTheme) R.drawable.logo_blanco else R.drawable.logo_rojo
             Image(
                 painter = rememberAsyncImagePainter(
-                    ImageRequest.Builder(LocalContext.current)
-                        .data(logoImageRes)
-                        .build()
+                    model = imageRequest,
+                    contentScale = ContentScale.Fit
                 ),
                 contentDescription = "Logo",
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
-                    .padding(vertical = 32.dp),
-                contentScale = ContentScale.Fit
+                    .padding(vertical = 32.dp)
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "LumVida es una app que permite reportar problemas urbanos como baches, basura acumulada, drenajes obstruidos o fallas en el alumbrado público, directamente desde tu móvil. Conecta a los ciudadanos con las autoridades para soluciones rápidas y eficaces. ¡Haz tu ciudad mejor con LumVida!",
+                text = stringResource(R.string.app_description),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(vertical = 16.dp),
                 color = if (isDarkTheme) TextPrimary else PrimaryDark
             )
 
-            Button(
-                onClick = {
-                    if (!permissionsState.allPermissionsGranted) {
-                        showPermissionsDialog = true
-                    } else {
-                        navController.navigate("reportes") {
-                            popUpTo("inicio") { inclusive = true }
-                        }
+            ContinueButton(
+                permissionsGranted = permissionsState.allPermissionsGranted,
+                onShowDialog = { showPermissionsDialog.value = true },
+                onNavigate = {
+                    navController.navigate("reportes") {
+                        popUpTo("inicio") { inclusive = true }
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun PermissionsDialog(
+    onConfirm: () -> Unit,
+    isDarkTheme: Boolean
+) {
+    AlertDialog(
+        onDismissRequest = { },
+        title = {
+            Text(
+                "Permisos necesarios",
+                style = MaterialTheme.typography.titleLarge,
+                color = if (isDarkTheme) TextPrimary else PrimaryDark
+            )
+        },
+        text = {
+            Text(
+                text = stringResource(R.string.permissions_description),
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (isDarkTheme) TextPrimary else PrimaryDark
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Primary,
                     contentColor = TextPrimary
                 )
             ) {
-                Text(
-                    text = if (permissionsState.allPermissionsGranted) "Continuar" else "Conceder permisos",
-                    style = MaterialTheme.typography.labelLarge
-                )
+                Text("Conceder permisos")
             }
-        }
+        },
+        containerColor = if (isDarkTheme) PrimaryDark else Color.White
+    )
+}
+
+@Composable
+private fun ContinueButton(
+    permissionsGranted: Boolean,
+    onShowDialog: () -> Unit,
+    onNavigate: () -> Unit
+) {
+    Button(
+        onClick = {
+            if (!permissionsGranted) {
+                onShowDialog()
+            } else {
+                onNavigate()
+            }
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Primary,
+            contentColor = TextPrimary
+        )
+    ) {
+        Text(
+            text = if (permissionsGranted) "Continuar" else "Conceder permisos",
+            style = MaterialTheme.typography.labelLarge
+        )
     }
 }

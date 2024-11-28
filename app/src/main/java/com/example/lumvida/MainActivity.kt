@@ -2,7 +2,7 @@ package com.example.lumvida
 
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity 
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -33,13 +33,15 @@ import com.example.lumvida.ui.CrearReporte.ui.CrearReporteViewModel
 import com.example.lumvida.ui.HistorialReportes.ui.HistorialReportesScreen
 import com.example.lumvida.ui.PerfilUsuario.PerfilUsuarioScreen
 import com.example.lumvida.ui.PerfilUsuario.PerfilUsuarioViewModel
-import com.example.lumvida.ui.Reportes.ui.MapScreen
+import com.example.lumvida.ui.Reportes.ui.MapaIncidenciasScreen
+import com.example.lumvida.ui.Reportes.ui.MapaIncidenciasViewModel
 import com.example.lumvida.ui.crearcuenta.CrearCuentaScreen
 import com.example.lumvida.ui.login.ui.LoginScreen
 import com.example.lumvida.ui.theme.LumVivaTheme
 import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.osmdroid.util.GeoPoint
 
 class MainActivity : ComponentActivity() {
@@ -57,6 +59,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             LumVivaTheme {
+                // Mover inicializaciones pesadas fuera del Surface
+                LaunchedEffect(Unit) {
+                    withContext(Dispatchers.IO) {
+                    }
+                }
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -144,13 +152,16 @@ fun LumVivaApp(authViewModel: AuthViewModel) { // Función principal de la aplic
         }
 
         composable("mapa_general") {
-            MapScreen(
-                onLocationSelected = { _, _ -> }, // No necesitamos seleccionar ubicación en este caso
-                onDismiss = { navController.navigateUp() },
-                initialLocation = GeoPoint(18.5001889, -88.296146), // Centro de Chetumal
-                categoriasViewModel = viewModel(),
-                viewModel = viewModel(),
+            val mapaIncidenciasViewModel: MapaIncidenciasViewModel = viewModel()
+            val categoriasViewModel: CategoriasViewModel = viewModel()
+
+            MapaIncidenciasScreen(
+                viewModel = mapaIncidenciasViewModel,
+                categoriasViewModel = categoriasViewModel,
+                onLocationSelected = { _, _ -> },
+                initialLocation = GeoPoint(20.5001889, -87.796146),
                 onNavigate = { route -> navController.navigate(route) },
+                onDismiss = { navController.popBackStack() },  // Cambiamos navigateUp() por popBackStack()
                 isViewMode = true
             )
         }

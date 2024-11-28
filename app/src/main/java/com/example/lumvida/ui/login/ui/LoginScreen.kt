@@ -34,6 +34,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn // Importa la clase p
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions // Importa opciones de inicio de sesión de Google.
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes // Importa códigos de estado de inicio de sesión.
 import com.google.android.gms.common.api.ApiException // Importa la clase para manejar excepciones de API.
+import com.google.firebase.auth.FirebaseUser
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class) // Anota la función para usar API experimentales.
 @Composable // Anota la función como composable.
@@ -51,6 +52,10 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     // Estado para mostrar u ocultar la contraseña.
     var passwordVisible by remember { mutableStateOf(false) }
+
+    var showPhoneDialog by remember { mutableStateOf(false) }
+    var phoneNumber by remember { mutableStateOf("") }
+    var currentUser by remember { mutableStateOf<FirebaseUser?>(null) }
 
     // Estado de inicio de sesión desde el LoginViewModel.
     val loginState by loginViewModel.loginState.collectAsState()
@@ -99,14 +104,69 @@ fun LoginScreen(
     // Efecto para manejar el estado de inicio de sesión.
     LaunchedEffect(loginState) {
         when (loginState) {
-            is LoginState.Success -> navController.navigate("reportes") { // Si el inicio fue exitoso, navega a "reportes".
-                popUpTo("login") { inclusive = true } // Elimina la pantalla de login de la pila de navegación.
+            is LoginState.NeedsPhoneNumber -> {
+                currentUser = (loginState as LoginState.NeedsPhoneNumber).user
+                showPhoneDialog = true
             }
             is LoginState.Error -> { // Si hay un error en el inicio de sesión.
                 errorMessage = (loginState as LoginState.Error).message // Obtiene el mensaje de error.
             }
             else -> {} // No hace nada si no hay cambios.
         }
+    }
+
+    if (showPhoneDialog && currentUser != null) {
+        AlertDialog(
+            onDismissRequest = { },
+            title = {
+                Text(
+                    "Número de teléfono requerido",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = if (isDarkTheme) TextPrimary else PrimaryDark
+                )
+            },
+            text = {
+                OutlinedTextField(
+                    value = phoneNumber,
+                    onValueChange = { phoneNumber = it.filter { c -> c != ' ' } },
+                    label = {
+                        Text(
+                            "Teléfono",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (isDarkTheme) TextPrimary else PrimaryDark
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Phone,
+                        imeAction = ImeAction.Done
+                    ),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                        unfocusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                        focusedBorderColor = Primary,
+                        unfocusedBorderColor = Secondary
+                    )
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        loginViewModel.submitPhoneNumber(currentUser!!, phoneNumber)
+                        showPhoneDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Primary,
+                        contentColor = TextPrimary
+                    )
+                ) {
+                    Text(
+                        "Guardar",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+        )
     }
 
     // Contenedor de fondo que se adapta al tema.

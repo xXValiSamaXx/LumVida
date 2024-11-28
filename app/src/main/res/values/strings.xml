@@ -2,4 +2,6 @@
 <resources>
     <string name="app_name">LumVida</string>
     <string name="default_web_client_id">1052984801220-rd3cp2ianu4mk955sk9khsf7vdog3t8n.apps.googleusercontent.com</string>
+    <string name="permissions_description">Para usar LumVida necesitamos:\n\n• Cámara: Para tomar fotos de los problemas urbanos\n• Ubicación: Para identificar dónde ocurren los problemas\n\nEstos permisos son necesarios para el funcionamiento correcto de la aplicación.</string>
+    <string name="app_description">LumVida es una app que permite reportar problemas urbanos como baches, basura acumulada, drenajes obstruidos o fallas en el alumbrado público, directamente desde tu móvil. Conecta a los ciudadanos con las autoridades para soluciones rápidas y eficaces. ¡Haz tu ciudad mejor con LumVida!</string>
 </resources>
