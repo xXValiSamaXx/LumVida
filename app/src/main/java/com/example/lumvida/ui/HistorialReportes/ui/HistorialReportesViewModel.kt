@@ -23,7 +23,10 @@ class HistorialReportesViewModel(
         val folio: Int,
         val direccion: String,
         val fecha: Timestamp,
-        val estado: String
+        val estado: String,
+        val categoria: String,
+        val comentario: String,
+        val foto: String? = null
     )
 
     private val _reportes = MutableStateFlow<List<Reporte>>(emptyList())
@@ -50,7 +53,6 @@ class HistorialReportesViewModel(
                     else -> return@launch
                 }
 
-                // Modificamos la consulta para que sea más simple
                 val snapshot = db.collection("reportes")
                     .whereEqualTo("userId", userId)
                     .get()
@@ -62,13 +64,16 @@ class HistorialReportesViewModel(
                             folio = (doc.getLong("folio") ?: 0).toInt(),
                             direccion = doc.getString("direccion") ?: "",
                             fecha = doc.getTimestamp("fecha") ?: Timestamp.now(),
-                            estado = doc.getString("estado") ?: "pendiente"
+                            estado = doc.getString("estado") ?: "pendiente",
+                            categoria = doc.getString("categoria") ?: "Sin categoría",
+                            comentario = doc.getString("comentario") ?: "Sin descripción",
+                            foto = doc.getString("foto")
                         )
                     } catch (e: Exception) {
                         Log.e("HistorialReportesViewModel", "Error mapeando reporte", e)
                         null
                     }
-                }.sortedByDescending { it.folio } // Ordenamos en memoria en lugar de en la consulta
+                }.sortedByDescending { it.folio }
             } catch (e: Exception) {
                 Log.e("HistorialReportesViewModel", "Error cargando reportes", e)
                 _error.value = "Error al cargar los reportes: ${e.message}"

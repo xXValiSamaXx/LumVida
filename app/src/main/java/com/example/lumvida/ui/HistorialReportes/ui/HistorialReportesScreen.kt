@@ -2,6 +2,7 @@ package com.example.lumvida.ui.HistorialReportes.ui
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,8 +11,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.lumvida.ui.Auth.ui.AuthViewModel
@@ -19,7 +22,18 @@ import com.example.lumvida.ui.theme.BackgroundContainer
 import com.example.lumvida.ui.theme.Primary
 import com.example.lumvida.ui.theme.PrimaryDark
 import com.example.lumvida.ui.theme.TextPrimary
+import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.draw.clip
+import android.graphics.BitmapFactory
+import android.util.Base64
+import android.util.Log
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.*
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -36,6 +50,8 @@ fun HistorialReportesScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val isDarkTheme = isSystemInDarkTheme()
+
+    var selectedReporte by remember { mutableStateOf<HistorialReportesViewModel.Reporte?>(null) }
 
     BackgroundContainer(isDarkTheme = isDarkTheme) {
         Column(
@@ -76,12 +92,6 @@ fun HistorialReportesScreen(
                         text = "Folio",
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.weight(1f),
-                        color = if (isDarkTheme) TextPrimary else Primary
-                    )
-                    Text(
-                        text = "Dirección",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(2f),
                         color = if (isDarkTheme) TextPrimary else Primary
                     )
                     Text(
@@ -140,7 +150,9 @@ fun HistorialReportesScreen(
                 ) {
                     items(reportes) { reporte ->
                         Surface(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedReporte = reporte },
                             color = if (isDarkTheme)
                                 PrimaryDark.copy(alpha = 0.5f)
                             else
@@ -148,40 +160,30 @@ fun HistorialReportesScreen(
                             shape = MaterialTheme.shapes.medium,
                             tonalElevation = 1.dp
                         ) {
-                            Column(
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 8.dp, horizontal = 16.dp)
+                                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Text(
-                                        text = reporte.folio.toString(),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.weight(1f),
-                                        color = if (isDarkTheme) TextPrimary else Primary
-                                    )
-                                    Text(
-                                        text = reporte.direccion,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.weight(2f),
-                                        color = if (isDarkTheme) TextPrimary else Primary
-                                    )
-                                    Text(
-                                        text = formatDate(reporte.fecha),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.weight(1f),
-                                        color = if (isDarkTheme) TextPrimary else Primary
-                                    )
-                                    Text(
-                                        text = reporte.estado,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.weight(1f),
-                                        color = if (isDarkTheme) TextPrimary else Primary
-                                    )
-                                }
+                                Text(
+                                    text = reporte.folio.toString(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f),
+                                    color = if (isDarkTheme) TextPrimary else Primary
+                                )
+                                Text(
+                                    text = formatDate(reporte.fecha),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f),
+                                    color = if (isDarkTheme) TextPrimary else Primary
+                                )
+                                Text(
+                                    text = reporte.estado,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f),
+                                    color = if (isDarkTheme) TextPrimary else Primary
+                                )
                             }
                         }
                     }
@@ -191,10 +193,175 @@ fun HistorialReportesScreen(
                 }
             }
         }
+
+        // Modal de detalles
+        ReporteDetalleDialog(
+            reporte = selectedReporte,
+            onDismiss = { selectedReporte = null }
+        )
     }
 }
 
-private fun formatDate(timestamp: com.google.firebase.Timestamp): String {
+@Composable
+private fun ReporteImagen(foto: String) {
+    var imageOrientation by remember { mutableStateOf<ImageOrientation?>(null) }
+
+    // Efecto para determinar la orientación cuando el componente se monta
+    LaunchedEffect(foto) {
+        withContext(Dispatchers.IO) {
+            try {
+                val imageBytes = Base64.decode(
+                    foto.substringAfter("base64,"),
+                    Base64.DEFAULT
+                )
+                val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                val ratio = bitmap.width.toFloat() / bitmap.height.toFloat()
+
+                imageOrientation = ImageOrientation(
+                    width = bitmap.width,
+                    height = bitmap.height,
+                    isLandscape = bitmap.width > bitmap.height,
+                    ratio = ratio
+                )
+            } catch (e: Exception) {
+                Log.e("ReporteImagen", "Error decodificando imagen", e)
+            }
+        }
+    }
+
+    // Mostrar la imagen una vez que tenemos la orientación
+    imageOrientation?.let { orientation ->
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(if (!orientation.isLandscape) 300.dp else 200.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            val imageBytes = Base64.decode(
+                foto.substringAfter("base64,"),
+                Base64.DEFAULT
+            )
+            val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "Imagen del reporte",
+                modifier = Modifier
+                    .let {
+                        if (!orientation.isLandscape) {
+                            it.width(200.dp)
+                                .height(300.dp)
+                        } else {
+                            it.fillMaxWidth()
+                                .height(200.dp)
+                        }
+                    }
+                    .clip(MaterialTheme.shapes.medium),
+                contentScale = if (!orientation.isLandscape) ContentScale.Fit else ContentScale.Crop
+            )
+        }
+    }
+}
+
+data class ImageOrientation(
+    val width: Int,
+    val height: Int,
+    val isLandscape: Boolean,
+    val ratio: Float
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReporteDetalleDialog(
+    reporte: HistorialReportesViewModel.Reporte?,
+    onDismiss: () -> Unit
+) {
+    if (reporte != null) {
+        BasicAlertDialog(
+            onDismissRequest = onDismiss,
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .padding(16.dp),
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                tonalElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Detalles del Reporte",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    // Imagen con orientación automática
+                    if (!reporte.foto.isNullOrEmpty()) {
+                        ReporteImagen(foto = reporte.foto)
+                    }
+
+                    // Categoría
+                    DetalleItem(
+                        titulo = "Categoría",
+                        contenido = reporte.categoria
+                    )
+
+                    // Ubicación
+                    DetalleItem(
+                        titulo = "Ubicación",
+                        contenido = reporte.direccion
+                    )
+
+                    // Descripción
+                    DetalleItem(
+                        titulo = "Descripción",
+                        contenido = reporte.comentario
+                    )
+
+                    // Botón de cerrar
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    ) {
+                        Text("Cerrar")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetalleItem(
+    titulo: String,
+    contenido: String
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = titulo,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = contenido,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
+private fun formatDate(timestamp: Timestamp): String {
     val date = timestamp.toDate()
     val formatter = SimpleDateFormat("dd/MM/yyyy", Locale("es", "MX"))
     return formatter.format(date)
