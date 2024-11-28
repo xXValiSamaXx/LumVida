@@ -1,7 +1,11 @@
 package com.example.lumvida.ui.CrearReporte.ui
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -10,7 +14,10 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,9 +27,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.lumvida.R
@@ -35,9 +42,11 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import java.io.File
 import androidx.core.content.FileProvider
+import com.example.lumvida.ui.Auth.ui.AuthState
 import com.example.lumvida.ui.Categorias.ui.CategoriasViewModel
-import com.example.lumvida.ui.Reportes.ui.MapaIncidenciasScreen
-import org.osmdroid.util.GeoPoint
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.RectangleShape
+
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +62,11 @@ fun CrearReporteScreen(
     val systemUiController = rememberSystemUiController()
     var currentPhotoUri by remember { mutableStateOf<Uri?>(null) }
     var showImagePickerDialog by remember { mutableStateOf(false) }
+
+    // Campos adicionales para usuario anónimo
+    var nombreCompleto by remember { mutableStateOf("") }
+    var telefono by remember { mutableStateOf("") }
+    var showNombreTelefonoFields by remember { mutableStateOf(authViewModel.authState.value is AuthState.Unauthenticated) }
 
     // Launcher para la galería
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -199,6 +213,49 @@ fun CrearReporteScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // Campos para usuario anónimo
+                if (showNombreTelefonoFields) {
+                    Text(
+                        text = "Datos de contacto",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = if (isDarkTheme) TextPrimary else PrimaryDark
+                    )
+
+                    OutlinedTextField(
+                        value = nombreCompleto,
+                        onValueChange = { nombreCompleto = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Nombre completo") },
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            unfocusedBorderColor = if (isDarkTheme) Secondary else Secondary,
+                            focusedBorderColor = if (isDarkTheme) Primary else Primary,
+                            unfocusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                            focusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = telefono,
+                        onValueChange = {
+                            if (it.length <= 10 && it.all { char -> char.isDigit() }) {
+                                telefono = it
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Teléfono (10 dígitos)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            unfocusedBorderColor = if (isDarkTheme) Secondary else Secondary,
+                            focusedBorderColor = if (isDarkTheme) Primary else Primary,
+                            unfocusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark,
+                            focusedTextColor = if (isDarkTheme) TextPrimary else PrimaryDark
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                }
+
+                // Sección de la foto
                 Text(
                     text = "Adjuntar evidencia del reporte",
                     style = MaterialTheme.typography.titleLarge,
@@ -333,7 +390,21 @@ fun CrearReporteScreen(
                 )
 
                 Button(
-                    onClick = { viewModel.sendReport(categoria, authViewModel, context) },
+                    onClick = {
+                        if (showNombreTelefonoFields) {
+                            if (nombreCompleto.isBlank()) {
+                                viewModel.showError("Por favor, ingrese su nombre completo")
+                                return@Button
+                            }
+                            if (telefono.length != 10) {
+                                viewModel.showError("Por favor, ingrese un teléfono válido de 10 dígitos")
+                                return@Button
+                            }
+                            viewModel.onNombreCompletoChange(nombreCompleto)
+                            viewModel.onTelefonoChange(telefono)
+                        }
+                        viewModel.sendReport(categoria, authViewModel, context)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 16.dp),
@@ -369,8 +440,7 @@ fun CrearReporteScreen(
         AlertDialog(
             onDismissRequest = { viewModel.dismissErrorDialog() },
             title = {
-                Text(
-                    "Atención",
+                Text("Atención",
                     style = MaterialTheme.typography.headlineSmall,
                     color = if (isDarkTheme) TextPrimary else PrimaryDark
                 )
@@ -410,21 +480,63 @@ fun CrearReporteScreen(
                 )
             },
             text = {
-                Text(
-                    "Tu reporte ha sido enviado correctamente",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (isDarkTheme) TextPrimary else PrimaryDark
-                )
+                Column {
+                    Text(
+                        "Tu reporte ha sido enviado correctamente",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (isDarkTheme) TextPrimary else PrimaryDark
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Folio: ${viewModel.folio}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (isDarkTheme) TextPrimary else PrimaryDark
+                        )
+                        IconButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("Folio", viewModel.folio.toString())
+                                clipboard.setPrimaryClip(clip)
+                                Toast.makeText(context, "Folio copiado", Toast.LENGTH_SHORT).show()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "Copiar folio",
+                                tint = Primary
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Guarda este folio para consultar el estado de tu reporte",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isDarkTheme) TextPrimary else PrimaryDark
+                    )
+                }
             },
-            confirmButton = { }
-        )
-
-        LaunchedEffect(Unit) {
-            delay(1500L)
-            navController.navigate("categorias") {
-                popUpTo("categorias") { inclusive = true }
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.dismissReporteSent()
+                        navController.navigate("categorias") {
+                            popUpTo("categorias") { inclusive = true }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Primary,
+                        contentColor = TextPrimary
+                    )
+                ) {
+                    Text("Aceptar")
+                }
             }
-        }
+        )
     }
 
     if (viewModel.showMap) {
@@ -434,5 +546,33 @@ fun CrearReporteScreen(
             },
             onDismiss = { viewModel.onDismissMap() }
         )
+    }
+}
+
+@Composable
+fun BackgroundContainer(
+    isDarkTheme: Boolean,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Color.Transparent,
+                shape = RectangleShape
+            )
+    ) {
+        Image(
+            painter = painterResource(
+                id = if (isDarkTheme)
+                    R.drawable.fondo_rojo
+                else
+                    R.drawable.fondo_blanco
+            ),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.FillBounds
+        )
+        content()
     }
 }

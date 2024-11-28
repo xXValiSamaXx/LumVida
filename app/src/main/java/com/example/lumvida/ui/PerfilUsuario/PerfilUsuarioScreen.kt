@@ -2,11 +2,18 @@ package com.example.lumvida.ui.PerfilUsuario // Define el paquete donde se encue
 
 import androidx.compose.foundation.isSystemInDarkTheme // Importa la función para detectar si el sistema está en modo oscuro.
 import androidx.compose.foundation.layout.* // Importa funciones de diseño para crear layouts.
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.* // Importa la biblioteca Material 3 para usar componentes de UI.
 import androidx.compose.runtime.* // Importa funciones de composición y estado de Jetpack Compose.
 import androidx.compose.ui.Alignment // Importa la clase para alinear elementos en un contenedor.
 import androidx.compose.ui.Modifier // Importa la clase Modifier para modificar la apariencia de los elementos.
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color // Importa la clase Color para usar colores.
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp // Importa la unidad dp para definir tamaños.
 import androidx.navigation.NavController // Importa la clase NavController para manejar la navegación.
@@ -27,6 +34,9 @@ fun PerfilUsuarioScreen(
 
     var editedName by remember { mutableStateOf("") }
     var editedPhone by remember { mutableStateOf("") }
+
+    val keyboardController = LocalSoftwareKeyboardController.current
+
 
     // Actualizar los valores editables cuando cambian los valores originales
     LaunchedEffect(userName, userPhone) {
@@ -113,9 +123,23 @@ fun PerfilUsuarioScreen(
                     // Campo Teléfono
                     OutlinedTextField(
                         value = if (isEditing) editedPhone else userPhone,
-                        onValueChange = { editedPhone = it },
-                        label = { Text("Teléfono") },
+                        onValueChange = { newValue ->
+                            // Solo permite números y limita a 10 dígitos
+                            if (newValue.length <= 10) {
+                                editedPhone = newValue.filter { it.isDigit() }
+                            }
+                        },
+                        label = { Text("Teléfono (10 dígitos)") },
                         enabled = isEditing,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = {
+                                keyboardController?.hide()
+                            }
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 8.dp),

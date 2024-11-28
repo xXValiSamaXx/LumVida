@@ -74,6 +74,19 @@ class PerfilUsuarioViewModel(
     fun updateUserData(newName: String, newPhone: String) {
         viewModelScope.launch {
             try {
+                // Validar el número de teléfono
+                when {
+                    newPhone.length != 10 -> {
+                        // Manejar el error - podrías agregar un estado para mostrar errores
+                        Log.e("PerfilUsuarioViewModel", "El número de teléfono debe tener exactamente 10 dígitos")
+                        return@launch
+                    }
+                    !newPhone.all { it.isDigit() } -> {
+                        Log.e("PerfilUsuarioViewModel", "El número de teléfono solo debe contener dígitos")
+                        return@launch
+                    }
+                }
+
                 _isLoading.value = true
                 when (val currentState = authViewModel.authState.value) {
                     is AuthState.Authenticated -> {

@@ -73,6 +73,30 @@ class CrearReporteViewModel(
     var reporteSent by mutableStateOf(false)
         private set
 
+    //anonimo
+
+    var nombreCompleto by mutableStateOf("")
+        private set
+
+    var telefono by mutableStateOf("")
+        private set
+
+    var folio by mutableStateOf(0)
+        private set
+
+    fun onNombreCompletoChange(newValue: String) {
+        nombreCompleto = newValue
+    }
+
+    fun onTelefonoChange(newValue: String) {
+        telefono = newValue
+    }
+
+    fun dismissReporteSent() {
+        reporteSent = false
+    }
+
+    //Ubicacion Quintana Roo
     private val chetumalCenter = GeoPoint(18.5001889, -88.296146)
 
     // Añade las nuevas propiedades y funciones para el historial de búsquedas
@@ -319,9 +343,9 @@ class CrearReporteViewModel(
                     else -> "anonymous"
                 }
 
-                // Obtener el último folio y generar el nuevo
                 val ultimoFolio = obtenerUltimoFolio()
                 val nuevoFolio = ultimoFolio + 1
+                folio = nuevoFolio
 
                 val imageBase64 = photoUri?.let { uri ->
                     convertImageToBase64(context, uri)
@@ -331,6 +355,8 @@ class CrearReporteViewModel(
                     "folio" to nuevoFolio,
                     "userId" to userId,
                     "isAnonymous" to (userId == "anonymous"),
+                    "nombreCompleto" to if (userId == "anonymous") nombreCompleto else "",
+                    "telefono" to if (userId == "anonymous") telefono else "",
                     "categoria" to categoria,
                     "foto" to imageBase64,
                     "direccion" to direccion,

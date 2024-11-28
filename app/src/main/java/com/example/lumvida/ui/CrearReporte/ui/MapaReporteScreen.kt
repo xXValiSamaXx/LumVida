@@ -97,8 +97,8 @@ fun MapaReporte(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val viewModel: MapViewModel = viewModel(
-        factory = MapViewModel.Companion.Factory(
+    val viewModel: MapaReporteViewModel = viewModel(
+        factory = MapaReporteViewModel.Companion.Factory(
             (context.applicationContext as LumVidaApplication).searchHistoryRepository
         )
     )
@@ -593,7 +593,7 @@ private fun SearchLocationModal(
     searchText: String,
     onDismiss: () -> Unit,
     onLocationSelected: (location: NominatimResponse) -> Unit,
-    viewModel: MapViewModel,
+    viewModel: MapaReporteViewModel,
     onLocationSelectionMode: () -> Unit,
     mapView: MapView?,
     onSearchTextChange: (String) -> Unit,

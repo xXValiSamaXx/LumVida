@@ -3,14 +3,13 @@ package com.example.lumvida.ui.CrearReporte.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.lumvida.data.db.RecentSearchEntity
 import com.example.lumvida.data.model.RecentSearch
 import com.example.lumvida.data.repository.SearchHistoryRepository
 import com.example.lumvida.network.model.NominatimResponse
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-class MapViewModel(
+class MapaReporteViewModel(
     private val searchHistoryRepository: SearchHistoryRepository
 ) : ViewModel() {
     val recentSearches = searchHistoryRepository.recentSearches
@@ -55,8 +54,8 @@ class MapViewModel(
         ) : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                if (modelClass.isAssignableFrom(MapViewModel::class.java)) {
-                    return MapViewModel(searchHistoryRepository) as T
+                if (modelClass.isAssignableFrom(MapaReporteViewModel::class.java)) {
+                    return MapaReporteViewModel(searchHistoryRepository) as T
                 }
                 throw IllegalArgumentException("Unknown ViewModel class")
             }
