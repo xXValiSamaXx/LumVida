@@ -128,10 +128,15 @@ fun LoginScreen(
             text = {
                 OutlinedTextField(
                     value = phoneNumber,
-                    onValueChange = { phoneNumber = it.filter { c -> c != ' ' } },
+                    onValueChange = { newValue ->
+                        // Solo permite números y limita a 10 dígitos
+                        if (newValue.length <= 10) {
+                            phoneNumber = newValue.filter { it.isDigit() }
+                        }
+                    },
                     label = {
                         Text(
-                            "Teléfono",
+                            "Teléfono (10 dígitos)",
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (isDarkTheme) TextPrimary else PrimaryDark
                         )

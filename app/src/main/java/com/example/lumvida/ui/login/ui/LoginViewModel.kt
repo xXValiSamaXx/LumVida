@@ -32,11 +32,19 @@ class LoginViewModel(private val authViewModel: AuthViewModel) : ViewModel() { /
     }
 
     fun submitPhoneNumber(user: FirebaseUser, phone: String) {
-        if (phone.isBlank()) {
-            _loginState.value = LoginState.Error("El teléfono no puede estar vacío")
-            return
+        when {
+            phone.length != 10 -> {
+                _loginState.value = LoginState.Error("El número de teléfono debe tener exactamente 10 dígitos")
+                return
+            }
+            !phone.all { it.isDigit() } -> {
+                _loginState.value = LoginState.Error("El número de teléfono solo debe contener dígitos")
+                return
+            }
+            else -> {
+                authViewModel.updateUserPhone(user, phone)
+            }
         }
-        authViewModel.updateUserPhone(user, phone)
     }
 
     // Función para manejar el inicio de sesión con correo y contraseña.
