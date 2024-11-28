@@ -3,9 +3,26 @@
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
+            <certificates src="user" />
         </trust-anchors>
     </base-config>
+
+    <!-- Configuración existente para tu API -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">comedatos.qroo.gob.mx</domain>
     </domain-config>
+
+    <!-- Configuración para servicios de mapas y localización -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">tile.openstreetmap.org</domain>
+        <domain includeSubdomains="true">nominatim.openstreetmap.org</domain>
+    </domain-config>
+
+    <!-- Configuración para mejorar conectividad móvil -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
 </network-security-config>
