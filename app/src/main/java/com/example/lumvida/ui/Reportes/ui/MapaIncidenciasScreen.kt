@@ -1,21 +1,21 @@
 package com.example.lumvida.ui.Reportes.ui
 
 import java.util.*
-import android.widget.TextView
-import java.text.SimpleDateFormat
 import org.osmdroid.views.overlay.infowindow.InfoWindow
-import com.google.firebase.Timestamp
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.location.LocationListener
 import android.location.LocationManager
-import android.opengl.ETC1.getHeight
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -58,7 +58,6 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
-import org.osmdroid.views.overlay.infowindow.MarkerInfoWindow
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
@@ -91,6 +90,37 @@ fun MapaIncidenciasScreen(
     val locationPermissionState = rememberPermissionState(
         Manifest.permission.ACCESS_FINE_LOCATION
     )
+
+    // Actualizar la ubicación del usuario cuando cambie
+    LaunchedEffect(Unit) {
+        getCurrentLocation(context)?.let { location ->
+            viewModel.updateLastKnownLocation(location)
+        }
+    }
+
+    // Escuchar cambios de ubicación
+    DisposableEffect(Unit) {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val locationListener = LocationListener { location ->
+            viewModel.updateLastKnownLocation(location)
+        }
+
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED) {
+            locationManager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                5000, // Actualizar cada 5 segundos
+                10f,  // O cuando se mueva 10 metros
+                locationListener
+            )
+        }
+
+        onDispose {
+            locationManager.removeUpdates(locationListener)
+        }
+    }
 
     // Monitorear conexión
     LaunchedEffect(Unit) {
@@ -223,10 +253,8 @@ fun MapaIncidenciasScreen(
             searchQuery = searchQuery,
             onSearchQueryChange = { query ->
                 searchQuery = query
-                getSuggestions(query, scope) { suggestions ->
-                    searchSuggestions = suggestions
-                    showSuggestions = suggestions.isNotEmpty()
-                }
+                viewModel.getSuggestions(query)
+                showSuggestions = true
             },
             onSearch = { searchLocation(searchQuery, scope, mapView) },
             isSearching = isSearching,
@@ -361,87 +389,93 @@ private fun SearchBar(
     showSuggestions: Boolean,
     onShowSuggestionsChange: (Boolean) -> Unit
 ) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Surface(
-            modifier = Modifier
-                .weight(1f)
-                .height(56.dp),
-            shape = RoundedCornerShape(28.dp),
-            color = Color.White,
-            shadowElevation = 4.dp
+    val suggestions by viewModel.searchSuggestions.collectAsState()
+
+    Column(modifier = modifier) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
+            Surface(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .weight(1f)
+                    .height(56.dp),
+                shape = RoundedCornerShape(28.dp),
+                color = Color.White,
+                shadowElevation = 4.dp
             ) {
-                Icon(
-                    painter = painterResource(id = android.R.drawable.ic_menu_search),
-                    contentDescription = "Search",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(24.dp)
-                )
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                BasicTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchQueryChange,
-                    singleLine = true,
-                    textStyle = TextStyle(color = Color.Black),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { if (searchQuery.isNotEmpty()) onSearch() }),
-                    modifier = Modifier.weight(1f),
-                    decorationBox = { innerTextField ->
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            if (searchQuery.isEmpty()) {
-                                Text(text = "Buscar ubicación", color = Color.Gray)
-                            }
-                            innerTextField()
-                        }
-                    }
-                )
-
-                if (isSearching) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.Gray
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(id = android.R.drawable.ic_menu_search),
+                        contentDescription = "Search",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(24.dp)
                     )
-                } else if (searchQuery.isNotEmpty()) {
-                    IconButton(
-                        onClick = {
-                            onSearchQueryChange("")
-                            mapView?.let { map ->
-                                InfoWindow.closeAllInfoWindowsOn(map)
-                                map.overlays.removeAll { overlay ->
-                                    when (overlay) {
-                                        is Marker -> overlay.id in listOf("search_overlay", "search_overlay_start", "search_overlay_end")
-                                        is org.osmdroid.views.overlay.Polyline -> overlay.id == "search_overlay"
-                                        is org.osmdroid.views.overlay.Polygon -> overlay.id == "search_overlay"
-                                        else -> false
-                                    }
-                                }
-                                map.invalidate()
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchQueryChange,
+                        singleLine = true,
+                        textStyle = TextStyle(color = Color.Black),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = {
+                            if (searchQuery.isNotEmpty()) {
+                                onSearch()
+                                onShowSuggestionsChange(false)
                             }
-                            onShowSuggestionsChange(false)
+                        }),
+                        modifier = Modifier.weight(1f),
+                        decorationBox = { innerTextField ->
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                if (searchQuery.isEmpty()) {
+                                    Text(text = "Buscar ubicación", color = Color.Gray)
+                                }
+                                innerTextField()
+                            }
                         }
-                    ) {
-                        Icon(
-                            painter = painterResource(id = android.R.drawable.ic_menu_close_clear_cancel),
-                            contentDescription = "Limpiar búsqueda",
-                            tint = Color.Gray,
-                            modifier = Modifier.size(24.dp)
+                    )
+
+                    if (isSearching) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.Gray
                         )
+                    } else if (searchQuery.isNotEmpty()) {
+                        IconButton(
+                            onClick = {
+                                onSearchQueryChange("")
+                                onShowSuggestionsChange(false)
+                                mapView?.let { map ->
+                                    InfoWindow.closeAllInfoWindowsOn(map)
+                                    map.overlays.removeAll { overlay ->
+                                        when (overlay) {
+                                            is Marker -> overlay.id in listOf("search_overlay", "search_overlay_start", "search_overlay_end")
+                                            is org.osmdroid.views.overlay.Polyline -> overlay.id == "search_overlay"
+                                            is org.osmdroid.views.overlay.Polygon -> overlay.id == "search_overlay"
+                                            else -> false
+                                        }
+                                    }
+                                    map.invalidate()
+                                }
+                            }
+                        ) {
+                            Icon(
+                                painter = painterResource(id = android.R.drawable.ic_menu_close_clear_cancel),
+                                contentDescription = "Limpiar búsqueda",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        Box {
             Surface(
                 modifier = Modifier.size(56.dp),
                 shape = CircleShape,
@@ -457,7 +491,40 @@ private fun SearchBar(
                     )
                 }
             }
+        }
 
+        // Sugerencias
+        if (showSuggestions && suggestions.isNotEmpty()) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                shape = RoundedCornerShape(8.dp),
+                color = Color.White,
+                shadowElevation = 4.dp
+            ) {
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 200.dp)
+                ) {
+                    items(suggestions) { suggestion ->
+                        Text(
+                            text = suggestion,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onSearchQueryChange(suggestion)
+                                    onSearch()
+                                    onShowSuggestionsChange(false)
+                                }
+                                .padding(16.dp),
+                            color = Color.Black
+                        )
+                    }
+                }
+            }
+        }
+
+        if (showCategoriesMenu) {
             DropdownMenu(
                 expanded = showCategoriesMenu,
                 onDismissRequest = { onShowCategoriesMenu(false) },
@@ -610,28 +677,6 @@ private fun getCurrentLocation(context: Context): Location? {
             ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
     }
     return null
-}
-
-private fun getSuggestions(
-    query: String,
-    scope: CoroutineScope,
-    onSuggestionsUpdate: (List<String>) -> Unit
-) {
-    if (query.length >= 1) {
-        scope.launch {
-            try {
-                val results = RetrofitClient.nominatimService.searchLocation(
-                    query = "$query, Quintana Roo"
-                )
-                onSuggestionsUpdate(results.map { it.displayName })
-            } catch (e: Exception) {
-                Log.e("MapScreen", "Error getting suggestions", e)
-                onSuggestionsUpdate(emptyList())
-            }
-        }
-    } else {
-        onSuggestionsUpdate(emptyList())
-    }
 }
 
 private fun searchLocation(

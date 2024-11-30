@@ -52,45 +52,29 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.lumvida.LumVidaApplication
 import com.example.lumvida.R
 import com.example.lumvida.data.model.RecentSearch
+import com.google.firebase.Timestamp
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.infowindow.InfoWindow
+import com.example.lumvida.ui.CrearReporte.ui.MapConstants
 
 @RequiresApi(Build.VERSION_CODES.O)
-
-//Constantes de limites de chetumal
-private const val MIN_ZOOM = 14.0
-private const val MAX_ZOOM = 21.0
-
-//Constantes de limites
-private val CHETUMAL_CONFIG = CityConfig(
-    bounds = BoundingBox(
-        18.55, // North
-        -88.25, // East
-        18.45, // South
-        -88.35  // West
-    ),
-    center = GeoPoint(18.5001889, -88.296146)
+data class ReporteMap(
+    val id: String = "",
+    val folio: Int = 0,
+    val categoria: String = "",
+    val descripcion: String = "",
+    val direccion: String = "",
+    val latitud: Double = 0.0,
+    val longitud: Double = 0.0,
+    val fecha: Timestamp = Timestamp.now(),
+    val estado: String = "",
+    val userId: String = ""
 )
 
-private val CANCUN_CONFIG = CityConfig(
-    bounds = BoundingBox(
-        21.30, // North
-        -86.75, // East
-        20.95, // South
-        -86.95  // West
-    ),
-    center = GeoPoint(21.1483, -86.8339)
-)
-
-data class CityConfig(
-    val bounds: BoundingBox,
-    val center: GeoPoint,
-    val defaultZoom: Double = 15.0
-)
-
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MapaReporte(
     onLocationSelected: (GeoPoint, String) -> Unit,
@@ -195,61 +179,59 @@ fun MapaReporte(
             factory = { context ->
                 MapView(context).apply {
                     setTileSource(TileSourceFactory.MAPNIK)
-                    setMultiTouchControls(true)  // Cambiado a false para permitir movimiento con un dedo
-                    isClickable = true  // Asegura que el mapa responde a toques
+                    setMultiTouchControls(true)
+                    isClickable = true
                     setBuiltInZoomControls(false)
                     setHorizontalMapRepetitionEnabled(false)
                     setVerticalMapRepetitionEnabled(false)
 
                     // Configurar ubicación actual
                     getCurrentLocation(context)?.let { location ->
-                        val lat = location.latitude
-                        val lon = location.longitude
-
-                        // Determinar qué configuración usar basado en la ubicación
-                        val config = when {
-                            CHETUMAL_CONFIG.bounds.contains(lat, lon) -> CHETUMAL_CONFIG
-                            CANCUN_CONFIG.bounds.contains(lat, lon) -> CANCUN_CONFIG
-                            else -> CHETUMAL_CONFIG
-                        }
-
-                        // Aplicar límites según la ciudad
+                        // Aplicar límites de Quintana Roo
                         setScrollableAreaLimitLatitude(
-                            config.bounds.latNorth,
-                            config.bounds.latSouth,
+                            MapConstants.QUINTANA_ROO_LAT_MAX,
+                            MapConstants.QUINTANA_ROO_LAT_MIN,
                             0
                         )
                         setScrollableAreaLimitLongitude(
-                            config.bounds.lonWest,
-                            config.bounds.lonEast,
+                            MapConstants.QUINTANA_ROO_LON_MIN,
+                            MapConstants.QUINTANA_ROO_LON_MAX,
                             0
                         )
 
-                        // Resto de la configuración
+                        // Configuración del mapa
                         setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
                         isFlingEnabled = true
-                        maxZoomLevel = MAX_ZOOM
-                        minZoomLevel = MIN_ZOOM
+                        maxZoomLevel = MapConstants.MAX_ZOOM
+                        minZoomLevel = MapConstants.MIN_ZOOM
 
-                        controller.setZoom(20.0)
-                        controller.setCenter(GeoPoint(lat, lon))
-                        controller.animateTo(GeoPoint(lat, lon))
+                        // Centrar en la ubicación actual si está dentro de Quintana Roo
+                        if (location.latitude in MapConstants.QUINTANA_ROO_LAT_MIN..MapConstants.QUINTANA_ROO_LAT_MAX &&
+                            location.longitude in MapConstants.QUINTANA_ROO_LON_MIN..MapConstants.QUINTANA_ROO_LON_MAX) {
+                            controller.setZoom(MapConstants.ZOOM_LEVEL_LOCAL)
+                            controller.setCenter(GeoPoint(location.latitude, location.longitude))
+                            controller.animateTo(GeoPoint(location.latitude, location.longitude))
+                        } else {
+                            // Si está fuera de Quintana Roo, centrar en el centro del estado
+                            controller.setZoom(MapConstants.ZOOM_LEVEL_STATE)
+                            controller.setCenter(GeoPoint(MapConstants.QUINTANA_ROO_CENTER_LAT, MapConstants.QUINTANA_ROO_CENTER_LON))
+                        }
 
                         val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), this)
                         locationOverlay.enableMyLocation()
                         overlays.add(locationOverlay)
                     } ?: run {
-                        // Si no hay ubicación, centrar en Chetumal por defecto
-                        controller.setCenter(CHETUMAL_CONFIG.center)
-                        controller.setZoom(CHETUMAL_CONFIG.defaultZoom)
+                        // Si no hay ubicación, centrar en el centro de Quintana Roo
+                        controller.setCenter(GeoPoint(MapConstants.QUINTANA_ROO_CENTER_LAT, MapConstants.QUINTANA_ROO_CENTER_LON))
+                        controller.setZoom(MapConstants.ZOOM_LEVEL_STATE)
                         setScrollableAreaLimitLatitude(
-                            CHETUMAL_CONFIG.bounds.latNorth,
-                            CHETUMAL_CONFIG.bounds.latSouth,
+                            MapConstants.QUINTANA_ROO_LAT_MAX,
+                            MapConstants.QUINTANA_ROO_LAT_MIN,
                             0
                         )
                         setScrollableAreaLimitLongitude(
-                            CHETUMAL_CONFIG.bounds.lonWest,
-                            CHETUMAL_CONFIG.bounds.lonEast,
+                            MapConstants.QUINTANA_ROO_LON_MIN,
+                            MapConstants.QUINTANA_ROO_LON_MAX,
                             0
                         )
                     }
@@ -624,21 +606,27 @@ private fun SearchLocationModal(
         viewModel.removeFromRecentSearches(search)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun getSuggestions(query: String) {
         if (query.length >= 3) {
             scope.launch {
                 try {
                     isSearching = true
                     getCurrentLocation(context)?.let { location ->
-                        val ciudad = when {
-                            CHETUMAL_CONFIG.bounds.contains(location.latitude, location.longitude) -> "Chetumal"
-                            CANCUN_CONFIG.bounds.contains(location.latitude, location.longitude) -> "Cancun"
-                            else -> "Chetumal" // Default a Chetumal si no está en ninguna
-                        }
+                        // Verificar si la ubicación está dentro de Quintana Roo
+                        val isInQuintanaRoo = location.latitude in MapConstants.QUINTANA_ROO_LAT_MIN..MapConstants.QUINTANA_ROO_LAT_MAX &&
+                                location.longitude in MapConstants.QUINTANA_ROO_LON_MIN..MapConstants.QUINTANA_ROO_LON_MAX
 
+                        // Buscar directamente en Quintana Roo sin especificar ciudad
                         val results = RetrofitClient.nominatimService.searchLocation(
-                            query = "$query, $ciudad, Quintana Roo"
-                        )
+                            query = "$query, Quintana Roo, Mexico"
+                        ).filter { response ->
+                            // Filtrar resultados para asegurarse de que estén dentro de Quintana Roo
+                            val lat = response.lat.toDouble()
+                            val lon = response.lon.toDouble()
+                            lat in MapConstants.QUINTANA_ROO_LAT_MIN..MapConstants.QUINTANA_ROO_LAT_MAX &&
+                                    lon in MapConstants.QUINTANA_ROO_LON_MIN..MapConstants.QUINTANA_ROO_LON_MAX
+                        }
                         searchSuggestions = results
                     }
                 } catch (e: Exception) {
@@ -650,6 +638,7 @@ private fun SearchLocationModal(
             }
         }
     }
+
 
     fun removeSuggestion(suggestionToRemove: NominatimResponse) {
         searchSuggestions = searchSuggestions.filterNot { it == suggestionToRemove }  // Cambiado de suggestions a searchSuggestions

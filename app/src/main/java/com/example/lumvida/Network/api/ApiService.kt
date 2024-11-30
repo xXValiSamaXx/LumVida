@@ -10,6 +10,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Query
+import retrofit2.http.QueryMap
 
 interface ApiService {
     @POST("api/NucleoDigital")
@@ -22,8 +23,12 @@ interface ApiService {
     suspend fun searchLocation(
         @Query("q") query: String,
         @Query("format") format: String = "json",
-        @Query("addressdetails") addressDetails: Int = 1,
         @Query("limit") limit: Int = 5
+    ): List<NominatimResponse>
+
+    @GET("search")
+    suspend fun searchLocationWithParams(
+        @QueryMap params: Map<String, String>
     ): List<NominatimResponse>
 
     @GET("https://overpass-api.de/api/interpreter")

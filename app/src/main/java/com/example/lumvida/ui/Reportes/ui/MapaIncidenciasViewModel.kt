@@ -10,14 +10,20 @@ import androidx.core.content.ContextCompat
 import android.Manifest
 import android.content.pm.PackageManager
 import android.util.Log
+import android.util.LruCache
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.lumvida.network.RetrofitClient
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 
@@ -62,6 +68,101 @@ class MapaIncidenciasViewModel : ViewModel() {
     )
 
     private val db = FirebaseFirestore.getInstance()
+
+    private var searchJob: Job? = null
+    private val _searchSuggestions = MutableStateFlow<List<String>>(emptyList())
+    val searchSuggestions: StateFlow<List<String>> = _searchSuggestions
+
+    // Añadir propiedad para almacenar la última ubicación conocida
+    private var lastKnownLocation: Location? = null
+
+    fun updateLastKnownLocation(location: Location?) {
+        lastKnownLocation = location
+    }
+
+    // Reducir el delay para hacer las sugerencias más rápidas
+    private val searchDebounce = 150L // reducido de 300ms a 150ms
+
+    // Mejorar la estructura del caché
+    private val suggestionsCache = LruCache<String, List<String>>(100) // Límite de 100 entradas
+
+    fun getSuggestions(query: String) {
+        if (query.length < 2) { // Reducido de 3 a 2 caracteres
+            _searchSuggestions.value = emptyList()
+            return
+        }
+
+        // Buscar en caché primero
+        val cacheKey = "$query-${lastKnownLocation?.latitude?.toInt()}-${lastKnownLocation?.longitude?.toInt()}"
+        suggestionsCache.get(cacheKey)?.let {
+            _searchSuggestions.value = it
+            return
+        }
+
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            try {
+                delay(searchDebounce)
+
+                withContext(Dispatchers.IO) {
+                    val searchQuery = lastKnownLocation?.let { location ->
+                        mapOf(
+                            "q" to "$query, Quintana Roo",
+                            "limit" to "5",
+                            "format" to "json",
+                            "lat" to location.latitude.toString(),
+                            "lon" to location.longitude.toString(),
+                            "bounded" to "1",
+                            "viewbox" to "${QUINTANA_ROO_LON_MIN},${QUINTANA_ROO_LAT_MIN},${QUINTANA_ROO_LON_MAX},${QUINTANA_ROO_LAT_MAX}",
+                            "countrycodes" to "mx",
+                            "addressdetails" to "1"
+                        )
+                    } ?: mapOf(
+                        "q" to "$query, Quintana Roo",
+                        "limit" to "5",
+                        "format" to "json",
+                        "bounded" to "1",
+                        "viewbox" to "${QUINTANA_ROO_LON_MIN},${QUINTANA_ROO_LAT_MIN},${QUINTANA_ROO_LON_MAX},${QUINTANA_ROO_LAT_MAX}",
+                        "countrycodes" to "mx",
+                        "addressdetails" to "1"
+                    )
+
+                    val results = RetrofitClient.nominatimService.searchLocationWithParams(searchQuery)
+
+                    val suggestions = results
+                        .filter { result ->
+                            val lat = result.lat.toDouble()
+                            val lon = result.lon.toDouble()
+                            isLocationInQuintanaRoo(lat, lon)
+                        }
+                        .sortedBy { result ->
+                            lastKnownLocation?.let { location ->
+                                calcularDistancia(
+                                    location.latitude,
+                                    location.longitude,
+                                    result.lat.toDouble(),
+                                    result.lon.toDouble()
+                                )
+                            } ?: 0.0
+                        }
+                        .map { result ->
+                            // Simplificar el nombre de la ubicación para hacerlo más legible
+                            result.displayName.split(",").take(2).joinToString(", ")
+                        }
+
+                    // Guardar en caché
+                    suggestionsCache.put(cacheKey, suggestions)
+
+                    withContext(Dispatchers.Main) {
+                        _searchSuggestions.value = suggestions
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("MapScreen", "Error getting suggestions", e)
+                _searchSuggestions.value = emptyList()
+            }
+        }
+    }
 
     fun obtenerReportes() {
         viewModelScope.launch {

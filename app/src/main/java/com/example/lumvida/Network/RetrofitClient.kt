@@ -2,6 +2,7 @@ package com.example.lumvida.network
 
 import android.util.Log
 import com.example.lumvida.network.api.ApiService
+import com.example.lumvida.network.model.NominatimResponse
 import com.google.gson.GsonBuilder
 import okhttp3.ConnectionSpec
 import okhttp3.Dns
@@ -9,6 +10,9 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.GET
+import retrofit2.http.Query
+import retrofit2.http.QueryMap
 import java.net.InetAddress
 import java.util.concurrent.TimeUnit
 import java.util.Arrays
@@ -148,4 +152,20 @@ object RetrofitClient {
             }
         } ?: "Sin conexión"
     }
+
+    // Crear una interfaz específica para Nominatim
+    interface NominatimService {
+        @GET("search")
+        suspend fun searchLocation(
+            @Query("q") query: String,
+            @Query("format") format: String = "json",
+            @Query("limit") limit: Int = 5
+        ): List<NominatimResponse>
+
+        @GET("search")
+        suspend fun searchLocationWithParams(
+            @QueryMap params: Map<String, String>
+        ): List<NominatimResponse>
+    }
+
 }
