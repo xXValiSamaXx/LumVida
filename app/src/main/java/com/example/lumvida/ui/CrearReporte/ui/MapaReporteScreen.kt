@@ -6,18 +6,51 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.BottomSheetScaffold
+import androidx.compose.material.BottomSheetValue
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.rememberBottomSheetScaffoldState
+import androidx.compose.material.rememberBottomSheetState
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,54 +60,34 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
-import com.example.lumvida.network.RetrofitClient
-import com.example.lumvida.network.model.NominatimResponse
-import com.example.lumvida.ui.components.NetworkStatusMessage
-import com.example.lumvida.ui.theme.Primary
-import com.example.lumvida.ui.theme.TextPrimary
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.BoundingBox
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
-import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.lumvida.LumVidaApplication
 import com.example.lumvida.R
-import com.example.lumvida.data.model.RecentSearch
+import com.example.lumvida.network.RetrofitClient
+import com.example.lumvida.ui.components.NetworkStatusMessage
+import com.example.lumvida.ui.theme.Primary
+import com.example.lumvida.ui.theme.TextPrimary
 import com.google.firebase.Timestamp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.infowindow.InfoWindow
-import com.example.lumvida.ui.CrearReporte.ui.MapConstants
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
+import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 
 @RequiresApi(Build.VERSION_CODES.O)
-data class ReporteMap(
-    val id: String = "",
-    val folio: Int = 0,
-    val categoria: String = "",
-    val descripcion: String = "",
-    val direccion: String = "",
-    val latitud: Double = 0.0,
-    val longitud: Double = 0.0,
-    val fecha: Timestamp = Timestamp.now(),
-    val estado: String = "",
-    val userId: String = ""
-)
-
-@RequiresApi(Build.VERSION_CODES.O)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun MapaReporte(
     onLocationSelected: (GeoPoint, String) -> Unit,
@@ -90,51 +103,20 @@ fun MapaReporte(
     var searchText by remember { mutableStateOf("") }
     var isConnected by remember { mutableStateOf(RetrofitClient.isOnline(context)) }
     var wasDisconnected by remember { mutableStateOf(false) }
-    var showSearchModal by remember { mutableStateOf(false) }
     var isLocationSelectionMode by remember { mutableStateOf(false) }
     var currentMarker by remember { mutableStateOf<Marker?>(null) }
     var lastUpdateTime by remember { mutableStateOf(0L) }
-    val debounceTime = 200L // milisegundos
-    var searchSuggestions by remember { mutableStateOf<List<NominatimResponse>>(emptyList()) }
+    val debounceTime = 300L
 
-    // Mostrar el modal cuando showSearchModal es true
-    if (showSearchModal) {
-        Dialog(
-            onDismissRequest = { showSearchModal = false },
-            properties = DialogProperties(
-                dismissOnBackPress = true,
-                dismissOnClickOutside = true,
-                usePlatformDefaultWidth = false
-            )
-        ) {
-            SearchLocationModal(
-                searchText = searchText,
-                onDismiss = { showSearchModal = false },
-                onLocationSelected = { location ->
-                    val geoPoint = GeoPoint(location.lat.toDouble(), location.lon.toDouble())
-                    mapView?.controller?.animateTo(geoPoint)
-                    mapView?.controller?.setZoom(18.0)
-                    searchText = location.displayName
-                },
-                viewModel = viewModel,
-                onLocationSelectionMode = {
-                    isLocationSelectionMode = true
-                },
-                mapView = mapView,
-                onSearchTextChange = { newText ->
-                    searchText = newText
-                },
-                isLocationSelectionMode = isLocationSelectionMode,  // Añadido
-                currentMarker = currentMarker,  // Añadido
-                onLocationSelectionModeChange = { newValue ->  // Añadido
-                    isLocationSelectionMode = newValue
-                },
-                onCurrentMarkerChange = { newMarker ->  // Añadido
-                    currentMarker = newMarker
-                }
-            )
-        }
-    }
+    val scope = rememberCoroutineScope()
+
+    val sheetState = rememberBottomSheetState(
+        initialValue = BottomSheetValue.Collapsed,
+        confirmStateChange = { true }
+    )
+    val scaffoldState = rememberBottomSheetScaffoldState(
+        bottomSheetState = sheetState
+    )
 
     // Monitorear la conexión
     LaunchedEffect(Unit) {
@@ -169,207 +151,27 @@ fun MapaReporte(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-    ) {
-        // Mapa
-        AndroidView(
-            factory = { context ->
-                MapView(context).apply {
-                    setTileSource(TileSourceFactory.MAPNIK)
-                    setMultiTouchControls(true)
-                    isClickable = true
-                    setBuiltInZoomControls(false)
-                    setHorizontalMapRepetitionEnabled(false)
-                    setVerticalMapRepetitionEnabled(false)
-
-                    // Configurar ubicación actual
-                    getCurrentLocation(context)?.let { location ->
-                        // Aplicar límites de Quintana Roo
-                        setScrollableAreaLimitLatitude(
-                            MapConstants.QUINTANA_ROO_LAT_MAX,
-                            MapConstants.QUINTANA_ROO_LAT_MIN,
-                            0
-                        )
-                        setScrollableAreaLimitLongitude(
-                            MapConstants.QUINTANA_ROO_LON_MIN,
-                            MapConstants.QUINTANA_ROO_LON_MAX,
-                            0
-                        )
-
-                        // Configuración del mapa
-                        setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
-                        isFlingEnabled = true
-                        maxZoomLevel = MapConstants.MAX_ZOOM
-                        minZoomLevel = MapConstants.MIN_ZOOM
-
-                        // Centrar en la ubicación actual si está dentro de Quintana Roo
-                        if (location.latitude in MapConstants.QUINTANA_ROO_LAT_MIN..MapConstants.QUINTANA_ROO_LAT_MAX &&
-                            location.longitude in MapConstants.QUINTANA_ROO_LON_MIN..MapConstants.QUINTANA_ROO_LON_MAX) {
-                            controller.setZoom(MapConstants.ZOOM_LEVEL_LOCAL)
-                            controller.setCenter(GeoPoint(location.latitude, location.longitude))
-                            controller.animateTo(GeoPoint(location.latitude, location.longitude))
-                        } else {
-                            // Si está fuera de Quintana Roo, centrar en el centro del estado
-                            controller.setZoom(MapConstants.ZOOM_LEVEL_STATE)
-                            controller.setCenter(GeoPoint(MapConstants.QUINTANA_ROO_CENTER_LAT, MapConstants.QUINTANA_ROO_CENTER_LON))
-                        }
-
-                        val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), this)
-                        locationOverlay.enableMyLocation()
-                        overlays.add(locationOverlay)
-                    } ?: run {
-                        // Si no hay ubicación, centrar en el centro de Quintana Roo
-                        controller.setCenter(GeoPoint(MapConstants.QUINTANA_ROO_CENTER_LAT, MapConstants.QUINTANA_ROO_CENTER_LON))
-                        controller.setZoom(MapConstants.ZOOM_LEVEL_STATE)
-                        setScrollableAreaLimitLatitude(
-                            MapConstants.QUINTANA_ROO_LAT_MAX,
-                            MapConstants.QUINTANA_ROO_LAT_MIN,
-                            0
-                        )
-                        setScrollableAreaLimitLongitude(
-                            MapConstants.QUINTANA_ROO_LON_MIN,
-                            MapConstants.QUINTANA_ROO_LON_MAX,
-                            0
-                        )
-                    }
-
-                    mapView = this
-                }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
-
-        LaunchedEffect(isLocationSelectionMode) {
-            if (isLocationSelectionMode) {
-                mapView?.let { map ->
-                    // Eliminar marcador anterior si existe
-                    currentMarker?.let { map.overlays.remove(it) }
-
-                    // Crear nuevo marcador con posición ajustada
-                    val marker = Marker(map).apply {
-                        isDraggable = true
-                        icon = ContextCompat.getDrawable(context, R.drawable.ic_location_marker)
-                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                    }
-
-                    // Función para actualizar la posición del marcador
-                    fun updateMarkerPosition() {
-                        val offset = 0.2 // Factor de desplazamiento hacia arriba
-                        val center = map.mapCenter
-                        val newLat = center.latitude + (map.boundingBox.latitudeSpan * offset)
-                        marker.position = GeoPoint(newLat, center.longitude)
-                    }
-
-                    // Establecer posición inicial
-                    updateMarkerPosition()
-
-                    // Actualizar listener del mapa
-                    map.setMapListener(object : MapListener {
-                        override fun onScroll(event: ScrollEvent?): Boolean {
-                            updateMarkerPosition()
-                            map.invalidate()
-                            return true
-                        }
-
-                        override fun onZoom(event: ZoomEvent?): Boolean {
-                            updateMarkerPosition()
-                            map.invalidate()
-                            return true
-                        }
-                    })
-
-                    currentMarker = marker
-                    map.overlays.add(marker)
-                    map.invalidate()
-                }
-            } else {
-                // Limpiar cuando se desactiva el modo de selección
-                currentMarker?.let { marker ->
-                    mapView?.overlays?.remove(marker)
-                    mapView?.invalidate()
-                }
-                currentMarker = null
-            }
-        }
-
-        // Añadir el listener del mapa justo después
-        LaunchedEffect(mapView) {
-            mapView?.setMapListener(object : MapListener {
-                override fun onScroll(event: ScrollEvent?): Boolean {
-                    if (isLocationSelectionMode) {
-                        val currentTime = System.currentTimeMillis()
-                        val map = mapView ?: return true
-                        val center = map.mapCenter
-
-                        // Actualizar posición del marcador inmediatamente
-                        val offset = 0.3
-                        val newLat = center.latitude + (map.boundingBox.latitudeSpan * offset)
-                        val geoPoint = GeoPoint(newLat, center.longitude)
-                        currentMarker?.position = geoPoint
-
-                        // Debounce la actualización de la dirección
-                        if (currentTime - lastUpdateTime > debounceTime) {
-                            searchText = obtenerDireccion(context, newLat, center.longitude)
-                            lastUpdateTime = currentTime
-                        }
-
-                        map.invalidate()
-                    }
-                    return true
-                }
-
-                override fun onZoom(event: ZoomEvent?): Boolean {
-                    if (isLocationSelectionMode) {
-                        val currentTime = System.currentTimeMillis()
-                        val map = mapView ?: return true
-                        val center = map.mapCenter
-
-                        val offset = 0.3
-                        val newLat = center.latitude + (map.boundingBox.latitudeSpan * offset)
-                        val geoPoint = GeoPoint(newLat, center.longitude)
-                        currentMarker?.position = geoPoint
-
-                        // Debounce la actualización de la dirección
-                        if (currentTime - lastUpdateTime > debounceTime) {
-                            searchText = obtenerDireccion(context, newLat, center.longitude)
-                            lastUpdateTime = currentTime
-                        }
-
-                        map.invalidate()
-                    }
-                    return true
-                }
-            })
-        }
-
-        // Panel ahora en la parte inferior
-        Surface(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp)
-                .fillMaxWidth(),
-            color = Color.Black.copy(alpha = 0.8f),
-            shape = RoundedCornerShape(12.dp)
-        ) {
+    BottomSheetScaffold(
+        scaffoldState = scaffoldState,
+        sheetContent = {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp), // Reducido de 32.dp a 16.dp
                 horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Barra de arrastre clickeable
+            )  {
+                // Área arrastrable
                 Box(
                     modifier = Modifier
-                        .width(40.dp)
-                        .height(24.dp) // Aumentado para mejor área táctil
-                        .clickable { showSearchModal = true }
-                        .padding(vertical = 10.dp), // Padding para centrar la barra
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .width(40.dp)
                             .height(4.dp)
                             .background(
                                 color = Color.White.copy(alpha = 0.6f),
@@ -379,37 +181,55 @@ fun MapaReporte(
                 }
 
                 Text(
-                    text = "Mi ubicación",
+                    text = if (isLocationSelectionMode) "Fija tu destino" else "Mi ubicación",
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    color = Color.White
                 )
 
-                // Mostrar mensaje solo en modo de selección
                 if (isLocationSelectionMode) {
                     Text(
                         text = "Arrastra el mapa para mover el marcador",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
 
-                // Barra de búsqueda
                 OutlinedTextField(
                     value = searchText,
                     onValueChange = { searchText = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    placeholder = { Text("Buscando ubicación actual...", color = Color.White.copy(alpha = 0.5f)) },
+                        .padding(vertical = 16.dp)
+                        .draggable(
+                            state = rememberDraggableState { delta ->
+                                scope.launch {
+                                    if (delta > 0 && sheetState.isCollapsed) {
+                                        sheetState.expand()
+                                    } else if (delta < 0 && sheetState.isExpanded) {
+                                        sheetState.collapse()
+                                    }
+                                }
+                            },
+                            orientation = Orientation.Vertical
+                        ),
+                    enabled = true,
+                    placeholder = {
+                        Text(
+                            "Buscar dirección",
+                            color = Color.White.copy(alpha = 0.5f)
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp),
                     colors = OutlinedTextFieldDefaults.colors(
+                        cursorColor = Color.White,
                         focusedBorderColor = Color.White,
                         unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
                         focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
+                        unfocusedTextColor = Color.White,
+                        focusedPlaceholderColor = Color.White.copy(alpha = 0.5f),
+                        unfocusedPlaceholderColor = Color.White.copy(alpha = 0.5f)
                     ),
-                    shape = RoundedCornerShape(8.dp),
                     trailingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
@@ -417,11 +237,10 @@ fun MapaReporte(
                             tint = Color.White
                         )
                     },
-                    singleLine = true
+                    singleLine = true,
+                    interactionSource = remember { MutableInteractionSource() }
                 )
 
-                // Botones
-                // Botones
                 Button(
                     onClick = {
                         if (isLocationSelectionMode) {
@@ -430,7 +249,6 @@ fun MapaReporte(
                                 onLocationSelected(geoPoint, searchText)
                             }
                         } else {
-                            // Si no está en modo selección, usar la ubicación actual mostrada
                             mapView?.mapCenter?.let { center ->
                                 val geoPoint = GeoPoint(center.latitude, center.longitude)
                                 onLocationSelected(geoPoint, searchText)
@@ -439,510 +257,66 @@ fun MapaReporte(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                        .height(48.dp), // Reducido de 50.dp a 48.dp para ser más compacto
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        "Confirmar ubicación",
+                        text = "Confirmar ubicación",
                         style = MaterialTheme.typography.labelLarge,
-                        color = TextPrimary,
-                        modifier = Modifier.padding(vertical = 8.dp)
+                        color = TextPrimary
                     )
                 }
 
-                Button(
-                    onClick = {
-                        if (isLocationSelectionMode) {
-                            isLocationSelectionMode = false
-                            currentMarker?.let {
-                                mapView?.overlays?.remove(it)
-                                currentMarker = null // Limpia la referencia
+                if (sheetState.isExpanded) {
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Button(
+                        onClick = {
+                            if (isLocationSelectionMode) {
+                                isLocationSelectionMode = false
+                                currentMarker?.let {
+                                    mapView?.overlays?.remove(it)
+                                    currentMarker = null
+                                }
+                                mapView?.invalidate()
                             }
-                            mapView?.invalidate()
-                        }
-                        onDismiss()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
-                ) {
-                    Text(
-                        "Cancelar",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = TextPrimary,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-                }
-            }
-        }
-
-        // Controles de zoom y ubicación
-        Column(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 16.dp)
-                .width(48.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Controles de zoom
-            Surface(
-                modifier = Modifier.clip(RoundedCornerShape(24.dp)),
-                color = Color.Black.copy(alpha = 0.75f),
-                shadowElevation = 4.dp
-            ) {
-                Column {
-                    IconButton(
-                        onClick = { mapView?.controller?.zoomIn() },
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Text("+", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                    Divider(color = Color.White.copy(alpha = 0.2f))
-                    IconButton(
-                        onClick = { mapView?.controller?.zoomOut() },
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Text("-", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            // Botón de ubicación actual
-            Surface(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape),
-                color = Color.Black.copy(alpha = 0.75f),
-                shadowElevation = 4.dp
-            ) {
-                // Botón de ubicación actual
-                IconButton(
-                    onClick = {
-                        // Desactivar modo de selección si está activo
-                        if (isLocationSelectionMode) {
-                            isLocationSelectionMode = false
-                            currentMarker?.let { marker ->
-                                mapView?.overlays?.remove(marker)
-                                currentMarker = null
+                            scope.launch {
+                                sheetState.collapse()
                             }
-                        }
-                        mapView?.let { map ->
-                            InfoWindow.closeAllInfoWindowsOn(map)
-                            map.overlays.removeAll { overlay ->
-                                overlay is Marker && overlay.id == "search_result_marker"
-                            }
-                            map.invalidate()
-                        }
-                        getCurrentLocation(context)?.let { location ->
-                            val point = GeoPoint(location.latitude, location.longitude)
-                            // Actualizar la dirección en el texto
-                            searchText = obtenerDireccion(
-                                context,
-                                location.latitude,
-                                location.longitude
-                            )
-                            mapView?.controller?.animateTo(point)
-                            mapView?.controller?.setZoom(20.0)
-                        }
-                    }
-                ) {
-                    Icon(
-                        painter = painterResource(id = android.R.drawable.ic_menu_mylocation),
-                        contentDescription = "Mi ubicación",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-        }
-
-        // Mensaje de estado de red
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .padding(bottom = 16.dp),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            NetworkStatusMessage(
-                isConnected = isConnected,
-                wasDisconnected = wasDisconnected
-            )
-        }
-    }
-}
-
-@Composable
-private fun SearchLocationModal(
-    searchText: String,
-    onDismiss: () -> Unit,
-    onLocationSelected: (location: NominatimResponse) -> Unit,
-    viewModel: MapaReporteViewModel,
-    onLocationSelectionMode: () -> Unit,
-    mapView: MapView?,
-    onSearchTextChange: (String) -> Unit,
-    isLocationSelectionMode: Boolean,  // Añadido
-    currentMarker: Marker?,  // Añadido
-    onLocationSelectionModeChange: (Boolean) -> Unit,  // Añadido
-    onCurrentMarkerChange: (Marker?) -> Unit  // Añadido
-) {
-    val context = LocalContext.current
-    var searchQuery by remember { mutableStateOf("") }
-    var isSearching by remember { mutableStateOf(false) }
-    var searchSuggestions by remember { mutableStateOf<List<NominatimResponse>>(emptyList()) }
-    val scope = rememberCoroutineScope()
-    val recentSearches by viewModel.recentSearches.collectAsState()
-
-    fun formatTimeAgo(seconds: Long): String = when {
-        seconds < 60 -> "$seconds seg"
-        seconds < 3600 -> "${seconds / 60} min"
-        seconds < 86400 -> "${seconds / 3600} hr"
-        else -> "${seconds / 86400} d"
-    }
-
-    fun addToRecentSearches(suggestion: NominatimResponse) {
-        viewModel.addToRecentSearches(suggestion)
-    }
-
-    fun removeFromRecentSearches(search: RecentSearch) {
-        viewModel.removeFromRecentSearches(search)
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun getSuggestions(query: String) {
-        if (query.length >= 3) {
-            scope.launch {
-                try {
-                    isSearching = true
-                    getCurrentLocation(context)?.let { location ->
-                        // Verificar si la ubicación está dentro de Quintana Roo
-                        val isInQuintanaRoo = location.latitude in MapConstants.QUINTANA_ROO_LAT_MIN..MapConstants.QUINTANA_ROO_LAT_MAX &&
-                                location.longitude in MapConstants.QUINTANA_ROO_LON_MIN..MapConstants.QUINTANA_ROO_LON_MAX
-
-                        // Buscar directamente en Quintana Roo sin especificar ciudad
-                        val results = RetrofitClient.nominatimService.searchLocation(
-                            query = "$query, Quintana Roo, Mexico"
-                        ).filter { response ->
-                            // Filtrar resultados para asegurarse de que estén dentro de Quintana Roo
-                            val lat = response.lat.toDouble()
-                            val lon = response.lon.toDouble()
-                            lat in MapConstants.QUINTANA_ROO_LAT_MIN..MapConstants.QUINTANA_ROO_LAT_MAX &&
-                                    lon in MapConstants.QUINTANA_ROO_LON_MIN..MapConstants.QUINTANA_ROO_LON_MAX
-                        }
-                        searchSuggestions = results
-                    }
-                } catch (e: Exception) {
-                    Log.e("SearchLocationModal", "Error getting suggestions", e)
-                    searchSuggestions = emptyList()
-                } finally {
-                    isSearching = false
-                }
-            }
-        }
-    }
-
-
-    fun removeSuggestion(suggestionToRemove: NominatimResponse) {
-        searchSuggestions = searchSuggestions.filterNot { it == suggestionToRemove }  // Cambiado de suggestions a searchSuggestions
-    }
-
-    fun clearSearch() {
-        searchQuery = ""
-        searchSuggestions = emptyList()
-    }
-
-    // Función para añadir marcador
-    fun addMarkerToLocation(location: NominatimResponse) {
-        mapView?.let { map ->
-            // Limpiar marcadores existentes de búsqueda
-            map.overlays.removeAll { overlay ->
-                overlay is Marker && overlay.id == "search_result_marker"
-            }
-
-            // Crear y añadir nuevo marcador
-            val marker = Marker(map).apply {
-                id = "search_result_marker"
-                position = GeoPoint(location.lat.toDouble(), location.lon.toDouble())
-                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                icon = ContextCompat.getDrawable(map.context, R.drawable.ic_location_marker)
-                title = location.displayName
-            }
-            map.overlays.add(marker)
-            map.invalidate()
-        }
-    }
-
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.TopCenter
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color.Black
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-                    .statusBarsPadding()
-            ) {
-                // Header con título y botón cerrar
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Busca tu ubicación",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Color.White
-                    )
-
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            painter = painterResource(id = android.R.drawable.ic_menu_close_clear_cancel),
-                            contentDescription = "Cerrar",
-                            tint = Color.White
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Barra de búsqueda
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = {
-                        searchQuery = it
-                        getSuggestions(it)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Buscar dirección", color = Color.White.copy(alpha = 0.5f)) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.White,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { clearSearch() }) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Limpiar búsqueda",
-                                    tint = Color.White
-                                )
-                            }
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Buscar",
-                                tint = Color.White
-                            )
-                        }
-                    },
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Resultados de búsqueda
-                if (searchSuggestions.isNotEmpty()) {
-                    Box(
+                            onDismiss()
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 180.dp)
-                            .background(Color.Black)
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            items(
-                                items = searchSuggestions,
-                                key = { it.placeId } // Usar un identificador único
-                            ) { suggestion ->
-                                Column {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = suggestion.displayName,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = Color.White,
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clickable {
-                                                    // Desactivar modo de selección si está activo
-                                                    if (isLocationSelectionMode) {
-                                                        onLocationSelectionModeChange(false)
-                                                        currentMarker?.let { marker ->
-                                                            mapView?.overlays?.remove(marker)
-                                                            onCurrentMarkerChange(null)
-                                                        }
-                                                    }
-                                                    addMarkerToLocation(suggestion)  // Añadir marcador
-                                                    addToRecentSearches(suggestion)
-                                                    onLocationSelected(suggestion)
-                                                    onDismiss()
-                                                }
-                                        )
-
-                                        IconButton(
-                                            onClick = { removeSuggestion(suggestion) },
-                                            modifier = Modifier
-                                                .size(48.dp)
-                                                .padding(8.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Close,
-                                                contentDescription = "Eliminar sugerencia",
-                                                tint = Color.Gray
-                                            )
-                                        }
-                                    }
-                                    Divider(color = Color.White.copy(alpha = 0.1f))
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Búsquedas recientes
-                // Búsquedas recientes y botón de establecer ubicación
-                Column {
-                    // Mostrar búsquedas recientes si existen
-                    if (recentSearches.isNotEmpty()) {
                         Text(
-                            text = "Recientes",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.White,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(max = 200.dp) // Altura máxima para el área de recientes
-                        ) {
-                            LazyColumn (
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                items(recentSearches) { search ->
-                                    val secondsAgo = (System.currentTimeMillis() - search.timestamp) / 1000
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.width(70.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.History,
-                                                contentDescription = null,
-                                                tint = Color.Gray,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text(
-                                                text = formatTimeAgo(secondsAgo),
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = Color.Gray
-                                            )
-                                        }
-
-                                        Column(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .padding(horizontal = 8.dp)
-                                                .clickable {
-                                                    // Desactivar modo de selección si está activo
-                                                    if (isLocationSelectionMode) {
-                                                        onLocationSelectionModeChange(false)
-                                                        currentMarker?.let { marker ->
-                                                            mapView?.overlays?.remove(marker)
-                                                            onCurrentMarkerChange(null)
-                                                        }
-                                                    }
-                                                    val geoPoint = GeoPoint(search.lat, search.lon)
-                                                    mapView?.let { map ->
-                                                        // Limpiar marcadores existentes
-                                                        map.overlays.removeAll { overlay ->
-                                                            overlay is Marker && overlay.id == "search_result_marker"
-                                                        }
-
-                                                        // Añadir nuevo marcador
-                                                        val marker = Marker(map).apply {
-                                                            id = "search_result_marker"
-                                                            position = geoPoint
-                                                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                                            icon = ContextCompat.getDrawable(map.context, R.drawable.ic_location_marker)
-                                                            title = search.address
-                                                        }
-                                                        map.overlays.add(marker)
-                                                        map.controller.animateTo(geoPoint)
-                                                        map.controller.setZoom(18.0)
-                                                        map.invalidate()
-                                                    }
-                                                    onSearchTextChange(search.address)
-                                                    onDismiss()
-                                                }
-                                        ) {
-                                            Text(
-                                                text = search.name,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = Color.White
-                                            )
-                                            Text(
-                                                text = search.address,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = Color.Gray
-                                            )
-                                        }
-
-                                        IconButton(
-                                            onClick = { removeFromRecentSearches(search) }
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Close,
-                                                contentDescription = "Eliminar",
-                                                tint = Color.Gray,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    }
-                                    Divider(color = Color.White.copy(alpha = 0.1f))
-                                }
-                            }
-                        }
-
-                        Divider(
-                            color = Color.White.copy(alpha = 0.1f),
-                            modifier = Modifier.padding(vertical = 16.dp)
+                            text = "Cancelar",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = TextPrimary
                         )
                     }
 
-                    // Botón establecer ubicación en mapa (siempre visible)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Divider(
+                        color = Color.White.copy(alpha = 0.1f),
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+
+                    // Botón para selección manual
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                // Limpiar marcadores e info windows antes de cambiar de modo
-                                mapView?.let { map ->
-                                    InfoWindow.closeAllInfoWindowsOn(map) // Cerrar todos los info windows
-                                    map.overlays.removeAll { overlay ->
-                                        overlay is Marker && overlay.id == "search_result_marker"
-                                    }
-                                    map.invalidate()
+                                isLocationSelectionMode = true
+                                scope.launch {
+                                    sheetState.collapse()
                                 }
-                                onLocationSelectionMode()
-                                onDismiss()
                             }
-                            .padding(vertical = 16.dp),
+                            .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -959,8 +333,263 @@ private fun SearchLocationModal(
                     }
                 }
             }
+        },
+        sheetPeekHeight = 180.dp,
+        sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        sheetBackgroundColor = Color.Black.copy(alpha = 0.8f),
+        sheetElevation = 8.dp,
+        sheetGesturesEnabled = true
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+        ) {
+            // Mapa
+            AndroidView(
+                factory = { context ->
+                    MapView(context).apply {
+                        setTileSource(TileSourceFactory.MAPNIK)
+                        setMultiTouchControls(false)  // Desactivado por defecto
+                        isClickable = false           // Desactivado por defecto
+                        setBuiltInZoomControls(false)
+                        setHorizontalMapRepetitionEnabled(false)
+                        setVerticalMapRepetitionEnabled(false)
+
+                        getCurrentLocation(context)?.let { location ->
+                            // Limitar el área de movimiento a Quintana Roo
+                            setScrollableAreaLimitLatitude(
+                                MapConstants.QUINTANA_ROO_LAT_MAX,
+                                MapConstants.QUINTANA_ROO_LAT_MIN,
+                                0
+                            )
+                            setScrollableAreaLimitLongitude(
+                                MapConstants.QUINTANA_ROO_LON_MIN,
+                                MapConstants.QUINTANA_ROO_LON_MAX,
+                                0
+                            )
+
+                            // Establecer límites de zoom
+                            minZoomLevel = 14.0  // Zoom out máximo
+                            maxZoomLevel = 19.0  // Zoom in máximo
+
+                            // Iniciar con un zoom específico
+                            controller.setZoom(16.0)  // Zoom inicial
+                            controller.setCenter(GeoPoint(location.latitude, location.longitude))
+
+                            // Configurar overlay de ubicación
+                            val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), this)
+                            locationOverlay.enableMyLocation()
+                            overlays.add(locationOverlay)
+                        }
+
+                        // Limitar el área de movimiento cuando no está en modo manual
+                        addMapListener(object : MapListener {
+                            override fun onScroll(event: ScrollEvent?): Boolean {
+                                if (!isLocationSelectionMode) {
+                                    getCurrentLocation(context)?.let { location ->
+                                        val currentLocation = GeoPoint(location.latitude, location.longitude)
+                                        val distance = currentLocation.distanceToAsDouble(mapCenter)
+
+                                        // Si se aleja más de 1km de la ubicación actual
+                                        if (distance > 1000) {
+                                            controller.animateTo(currentLocation)
+                                        }
+                                    }
+                                }
+                                return true
+                            }
+
+                            override fun onZoom(event: ZoomEvent?): Boolean {
+                                if (!isLocationSelectionMode) {
+                                    // Mantener el zoom entre los límites cuando no está en modo manual
+                                    val zoomLevel = zoomLevel
+                                    if (zoomLevel < 14.0) controller.setZoom(14.0)
+                                    if (zoomLevel > 19.0) controller.setZoom(19.0)
+                                }
+                                return true
+                            }
+                        })
+
+                        mapView = this
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // Efecto para manejar el modo de selección
+            LaunchedEffect(isLocationSelectionMode) {
+                mapView?.let { map ->
+                    map.setMultiTouchControls(isLocationSelectionMode)
+                    map.isClickable = isLocationSelectionMode
+
+                    if (isLocationSelectionMode) {
+                        // En modo manual, permitir más libertad
+                        map.minZoomLevel = 17.0
+                        map.maxZoomLevel = 20.0
+
+                        currentMarker?.let { map.overlays.remove(it) }
+                        val marker = Marker(map).apply {
+                            isDraggable = true
+                            icon = ContextCompat.getDrawable(context, R.drawable.ic_location_marker)
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                        }
+                        updateMarkerPosition(map, marker)
+                        currentMarker = marker
+                        map.overlays.add(marker)
+                    } else {
+                        // En modo normal, restringir más
+                        map.minZoomLevel = 16.0
+                        map.maxZoomLevel = 18.0
+
+                        getCurrentLocation(context)?.let { location ->
+                            val point = GeoPoint(location.latitude, location.longitude)
+                            map.controller.animateTo(point)
+                            map.controller.setZoom(16.0)
+                            currentMarker?.let { map.overlays.remove(it) }
+                            currentMarker = null
+                            searchText = obtenerDireccion(context, location.latitude, location.longitude)
+                        }
+                    }
+                    map.invalidate()
+                }
+            }
+
+            // Listener del mapa
+            LaunchedEffect(mapView) {
+                mapView?.setMapListener(object : MapListener {
+                    override fun onScroll(event: ScrollEvent?): Boolean {
+                        if (isLocationSelectionMode) {
+                            val currentTime = System.currentTimeMillis()
+                            val map = mapView ?: return true
+                            val center = map.mapCenter
+
+                            // Actualizar posición del marcador al centro exacto
+                            currentMarker?.position = GeoPoint(center.latitude, center.longitude)
+
+                            if (currentTime - lastUpdateTime > debounceTime) {
+                                searchText = obtenerDireccion(context, center.latitude, center.longitude)
+                                lastUpdateTime = currentTime
+                            }
+
+                            map.invalidate()
+                        }
+                        return true
+                    }
+
+                    override fun onZoom(event: ZoomEvent?): Boolean {
+                        if (isLocationSelectionMode) {
+                            val currentTime = System.currentTimeMillis()
+                            val map = mapView ?: return true
+                            val center = map.mapCenter
+
+                            // Actualizar posición del marcador al centro exacto
+                            currentMarker?.position = GeoPoint(center.latitude, center.longitude)
+
+                            if (currentTime - lastUpdateTime > debounceTime) {
+                                searchText = obtenerDireccion(context, center.latitude, center.longitude)
+                                lastUpdateTime = currentTime
+                            }
+
+                            map.invalidate()
+                        }
+                        return true
+                    }
+                })
+            }
+
+            // Controles de zoom y ubicación
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 16.dp)
+                    .width(48.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Controles de zoom
+                Surface(
+                    modifier = Modifier.clip(RoundedCornerShape(24.dp)),
+                    color = Color.Black.copy(alpha = 0.75f),
+                    shadowElevation = 4.dp
+                ) {
+                    Column {
+                        IconButton(
+                            onClick = { mapView?.controller?.zoomIn() },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Text("+", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                        Divider(color = Color.White.copy(alpha = 0.2f))
+                        IconButton(
+                            onClick = { mapView?.controller?.zoomOut() },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Text("-", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                // Botón de ubicación actual
+                Surface(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape),
+                    color = Color.Black.copy(alpha = 0.75f),
+                    shadowElevation = 4.dp
+                ) {
+                    IconButton(
+                        onClick = {
+                            if (isLocationSelectionMode) {
+                                isLocationSelectionMode = false
+                                currentMarker?.let { marker ->
+                                    mapView?.overlays?.remove(marker)
+                                    currentMarker = null
+                                }
+                            }
+                            mapView?.let { map ->
+                                InfoWindow.closeAllInfoWindowsOn(map)
+                                map.overlays.removeAll { overlay ->
+                                    overlay is Marker && overlay.id == "search_result_marker"
+                                }
+                                getCurrentLocation(context)?.let { location ->
+                                    val point = GeoPoint(location.latitude, location.longitude)
+                                    searchText = obtenerDireccion(context, location.latitude, location.longitude)
+                                    map.controller.animateTo(point)
+                                    map.controller.setZoom(20.0)
+                                }
+                                map.invalidate()
+                            }
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(id = android.R.drawable.ic_menu_mylocation),
+                            contentDescription = "Mi ubicación",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+
+            // Mensaje de estado de red
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .padding(bottom = 16.dp),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                NetworkStatusMessage(
+                    isConnected = isConnected,
+                    wasDisconnected = wasDisconnected
+                )
+            }
         }
     }
+}
+
+private fun updateMarkerPosition(map: MapView, marker: Marker) {
+    val center = map.mapCenter
+    marker.position = GeoPoint(center.latitude, center.longitude)
 }
 
 private fun getCurrentLocation(context: Context): Location? {

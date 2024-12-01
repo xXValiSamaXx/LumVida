@@ -24,10 +24,8 @@ class CustomInfoWindow(
             }
 
             // Establecer los textos
-            view.findViewById<TextView>(R.id.tvFolio)?.text = "Folio: ${reporte.folio}"
             view.findViewById<TextView>(R.id.tvCategoria)?.text = "🏷️ Categoría: ${reporte.categoria}"
             view.findViewById<TextView>(R.id.tvDireccion)?.text = "📍 Dirección: ${reporte.direccion}"
-            view.findViewById<TextView>(R.id.tvComentario)?.text = "💬 Descripción: ${reporte.descripcion}"
             view.findViewById<TextView>(R.id.tvFecha)?.text = "📅 Fecha: ${formatearFecha(reporte.fecha)}"
             view.findViewById<TextView>(R.id.tvEstado)?.text = "📊 Estado: ${reporte.estado}"
 

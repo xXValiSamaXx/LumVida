@@ -52,6 +52,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.preference.ktx)
     // Room para lista bd local
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:$roomVersion")
@@ -93,6 +94,8 @@ dependencies {
 
     //Material 3
     implementation ("androidx.compose.material3:material3:1.1.2")
+    implementation ("com.google.accompanist:accompanist-navigation-material:0.31.3-beta")
+    implementation ("androidx.compose.material:material:1.4.2")
 
     // AndroidX y Compose
     implementation(libs.androidx.material.icons.extended)
