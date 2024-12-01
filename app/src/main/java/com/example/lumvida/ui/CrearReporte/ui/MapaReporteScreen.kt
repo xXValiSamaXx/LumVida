@@ -334,7 +334,7 @@ fun MapaReporte(
                 }
             }
         },
-        sheetPeekHeight = 180.dp,
+        sheetPeekHeight = 140.dp,
         sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
         sheetBackgroundColor = Color.Black.copy(alpha = 0.8f),
         sheetElevation = 8.dp,

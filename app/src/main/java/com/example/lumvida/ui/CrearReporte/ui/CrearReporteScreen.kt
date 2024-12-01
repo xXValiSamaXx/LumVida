@@ -5,9 +5,11 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -48,6 +50,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.RectangleShape
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CrearReporteScreen(
@@ -469,6 +472,7 @@ fun CrearReporteScreen(
         )
     }
 
+    // En el diálogo de éxito del reporte
     if (viewModel.reporteSent) {
         AlertDialog(
             onDismissRequest = { },
@@ -508,7 +512,7 @@ fun CrearReporteScreen(
                             Icon(
                                 imageVector = Icons.Default.ContentCopy,
                                 contentDescription = "Copiar folio",
-                                tint = Primary
+                                tint = if (isDarkTheme) TextPrimary else Primary
                             )
                         }
                     }
