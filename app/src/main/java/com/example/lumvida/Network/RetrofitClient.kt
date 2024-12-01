@@ -19,7 +19,7 @@ import java.util.Arrays
 
 object RetrofitClient {
     private const val BASE_URL = "http://comedatos.qroo.gob.mx/"
-    private const val NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org/"
+    private const val NOMINATIM_BASE_URL = "http://nominatim.openstreetmap.org/"
 
     private val gson = GsonBuilder()
         .setLenient()

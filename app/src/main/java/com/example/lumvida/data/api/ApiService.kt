@@ -31,7 +31,7 @@ interface ApiService {
         @QueryMap params: Map<String, String>
     ): List<NominatimResponse>
 
-    @GET("https://overpass-api.de/api/interpreter")
+    @GET("http://overpass-api.de/api/interpreter")
     suspend fun getStreetGeometry(
         @Query("data") query: String
     ): ResponseBody
