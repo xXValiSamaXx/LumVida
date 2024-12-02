@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -110,13 +111,17 @@ fun LumVivaApp(authViewModel: AuthViewModel) { // Función principal de la aplic
                 authViewModel = authViewModel // Pasa el ViewModel de autenticación.
             )
         }
-        composable("usuario") { // Ruta para la pantalla de perfil de usuario.
-            val perfilUsuarioViewModel: PerfilUsuarioViewModel = viewModel( // Obtiene el ViewModel para el perfil.
-                factory = PerfilUsuarioViewModel.Factory(authViewModel) // Utiliza una fábrica para el ViewModel.
+        composable("usuario") {
+            val context = LocalContext.current
+            val perfilUsuarioViewModel: PerfilUsuarioViewModel = viewModel(
+                factory = PerfilUsuarioViewModel.provideFactory(
+                    authViewModel = authViewModel,
+                    context = context
+                )
             )
-            PerfilUsuarioScreen( // Llama a la pantalla de perfil.
+            PerfilUsuarioScreen(
                 navController = navController,
-                viewModel = perfilUsuarioViewModel // Pasa el ViewModel de perfil de usuario.
+                viewModel = perfilUsuarioViewModel
             )
         }
         composable("mis_reportes") {

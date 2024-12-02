@@ -31,9 +31,6 @@
 
     <!-- Feature de cámara-->
     <uses-feature
-        android:name="android.hardware.camera"
-        android:required="true" />
-    <uses-feature
         android:name="android.hardware.camera.autofocus"
         android:required="true" />
 
@@ -49,7 +46,8 @@
         android:roundIcon="@mipmap/icon_white_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.LumViva"
-        tools:targetApi="31">
+        android:enableOnBackInvokedCallback="true"
+        tools:targetApi="33">
 
         <!--Provider de file_paths.xml-->
         <provider
