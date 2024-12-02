@@ -350,31 +350,15 @@ fun MapaReporte(
                 factory = { context ->
                     MapView(context).apply {
                         setTileSource(TileSourceFactory.MAPNIK)
-                        setMultiTouchControls(false)  // Desactivado por defecto
-                        isClickable = false           // Desactivado por defecto
+                        setMultiTouchControls(false)  // Desactivado inicialmente
+                        isClickable = false           // Desactivado inicialmente
                         setBuiltInZoomControls(false)
                         setHorizontalMapRepetitionEnabled(false)
                         setVerticalMapRepetitionEnabled(false)
 
                         getCurrentLocation(context)?.let { location ->
-                            // Limitar el área de movimiento a Quintana Roo
-                            setScrollableAreaLimitLatitude(
-                                MapConstants.QUINTANA_ROO_LAT_MAX,
-                                MapConstants.QUINTANA_ROO_LAT_MIN,
-                                0
-                            )
-                            setScrollableAreaLimitLongitude(
-                                MapConstants.QUINTANA_ROO_LON_MIN,
-                                MapConstants.QUINTANA_ROO_LON_MAX,
-                                0
-                            )
-
-                            // Establecer límites de zoom
-                            minZoomLevel = 14.0  // Zoom out máximo
-                            maxZoomLevel = 19.0  // Zoom in máximo
-
-                            // Iniciar con un zoom específico
-                            controller.setZoom(16.0)  // Zoom inicial
+                            // Configuración inicial
+                            controller.setZoom(16.0)
                             controller.setCenter(GeoPoint(location.latitude, location.longitude))
 
                             // Configurar overlay de ubicación
@@ -383,30 +367,22 @@ fun MapaReporte(
                             overlays.add(locationOverlay)
                         }
 
-                        // Limitar el área de movimiento cuando no está en modo manual
+                        // Listener para prevenir el desplazamiento cuando no está en modo selección
                         addMapListener(object : MapListener {
                             override fun onScroll(event: ScrollEvent?): Boolean {
                                 if (!isLocationSelectionMode) {
                                     getCurrentLocation(context)?.let { location ->
-                                        val currentLocation = GeoPoint(location.latitude, location.longitude)
-                                        val distance = currentLocation.distanceToAsDouble(mapCenter)
-
-                                        // Si se aleja más de 1km de la ubicación actual
-                                        if (distance > 1000) {
-                                            controller.animateTo(currentLocation)
-                                        }
+                                        controller.setCenter(GeoPoint(location.latitude, location.longitude))
                                     }
                                 }
                                 return true
                             }
 
                             override fun onZoom(event: ZoomEvent?): Boolean {
-                                if (!isLocationSelectionMode) {
-                                    // Mantener el zoom entre los límites cuando no está en modo manual
-                                    val zoomLevel = zoomLevel
-                                    if (zoomLevel < 14.0) controller.setZoom(14.0)
-                                    if (zoomLevel > 19.0) controller.setZoom(19.0)
-                                }
+                                // Permitir zoom siempre, pero mantener los límites
+                                val zoomLevel = zoomLevel
+                                if (zoomLevel < 14.0) controller.setZoom(14.0)
+                                if (zoomLevel > 19.0) controller.setZoom(19.0)
                                 return true
                             }
                         })
@@ -417,35 +393,35 @@ fun MapaReporte(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Efecto para manejar el modo de selección
+            // Efecto para el modo de selección
             LaunchedEffect(isLocationSelectionMode) {
                 mapView?.let { map ->
-                    map.setMultiTouchControls(isLocationSelectionMode)
-                    map.isClickable = isLocationSelectionMode
-
                     if (isLocationSelectionMode) {
-                        // En modo manual, permitir más libertad
-                        map.minZoomLevel = 17.0
-                        map.maxZoomLevel = 20.0
+                        // Habilitar controles en modo selección
+                        map.setMultiTouchControls(true)
+                        map.isClickable = true
+                        map.minZoomLevel = 14.0
+                        map.maxZoomLevel = 19.0
 
+                        // Configurar marcador
                         currentMarker?.let { map.overlays.remove(it) }
                         val marker = Marker(map).apply {
                             isDraggable = true
                             icon = ContextCompat.getDrawable(context, R.drawable.ic_location_marker)
                             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            position = map.mapCenter as GeoPoint?
                         }
-                        updateMarkerPosition(map, marker)
                         currentMarker = marker
                         map.overlays.add(marker)
                     } else {
-                        // En modo normal, restringir más
-                        map.minZoomLevel = 16.0
-                        map.maxZoomLevel = 18.0
+                        // Deshabilitar controles fuera del modo selección
+                        map.setMultiTouchControls(false)
+                        map.isClickable = false
 
+                        // Volver a la ubicación actual
                         getCurrentLocation(context)?.let { location ->
                             val point = GeoPoint(location.latitude, location.longitude)
                             map.controller.animateTo(point)
-                            map.controller.setZoom(16.0)
                             currentMarker?.let { map.overlays.remove(it) }
                             currentMarker = null
                             searchText = obtenerDireccion(context, location.latitude, location.longitude)

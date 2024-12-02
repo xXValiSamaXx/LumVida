@@ -53,6 +53,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.preference.ktx)
+    implementation(libs.play.services.location)
     // Room para lista bd local
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:$roomVersion")

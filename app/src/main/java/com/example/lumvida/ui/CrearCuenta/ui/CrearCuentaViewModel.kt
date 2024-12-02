@@ -20,47 +20,92 @@ class CrearCuentaViewModel(private val authViewModel: AuthViewModel) : ViewModel
     ) {
         viewModelScope.launch {
             _state.value = CrearCuentaState.Loading
+
+            // Lista para acumular todos los errores
+            val errores = mutableListOf<String>()
+
+            // Validación de campos vacíos
             when {
                 nombre.isBlank() -> {
-                    _state.value = CrearCuentaState.Error("El nombre no puede estar vacío")
+                    errores.add("El campo nombre es obligatorio")
                 }
+                email.isBlank() -> {
+                    errores.add("El campo correo electrónico es obligatorio")
+                }
+                telefono.isBlank() -> {
+                    errores.add("El campo teléfono es obligatorio")
+                }
+                password.isBlank() -> {
+                    errores.add("El campo contraseña es obligatorio")
+                }
+                confirmarPassword.isBlank() -> {
+                    errores.add("Debe confirmar la contraseña")
+                }
+            }
+
+            // Si hay campos vacíos, mostrar esos errores primero
+            if (errores.isNotEmpty()) {
+                _state.value = CrearCuentaState.Error(errores.joinToString("\\n"))
+                return@launch
+            }
+
+            // Validaciones de formato y contenido
+            when {
                 nombre.length < 2 -> {
-                    _state.value = CrearCuentaState.Error("El nombre debe tener al menos 2 caracteres")
+                    errores.add("El nombre debe tener al menos 2 caracteres")
                 }
                 !isValidEmail(email) -> {
-                    _state.value = CrearCuentaState.Error("El correo electrónico no es válido")
+                    errores.add("El formato del correo electrónico no es válido")
                 }
                 !isValidPhone(telefono) -> {
-                    _state.value = CrearCuentaState.Error("El teléfono debe tener 10 dígitos")
+                    errores.add("El teléfono debe tener exactamente 10 dígitos")
                 }
                 !isValidPassword(password) -> {
-                    _state.value = CrearCuentaState.Error(
-                        """La contraseña debe cumplir con los siguientes requisitos:
+                    errores.add("""La contraseña debe cumplir con:
                         |• Al menos 8 caracteres
                         |• Al menos una letra mayúscula
                         |• Al menos una letra minúscula
                         |• Al menos un número
-                        |• Al menos un carácter especial (@#$%^&+=)""".trimMargin()
-                    )
+                        |• Al menos un carácter especial (@#$%^&+=)""".trimMargin())
                 }
                 password != confirmarPassword -> {
-                    _state.value = CrearCuentaState.Error("Las contraseñas no coinciden")
-                }
-                else -> {
-                    try {
-                        val userData = mapOf(
-                            "nombre" to nombre,
-                            "telefono" to telefono,
-                            "provider" to "EMAIL",
-                            "createdAt" to System.currentTimeMillis()
-                        )
-                        authViewModel.createUserWithEmailAndPassword(email, password, userData)
-                        _state.value = CrearCuentaState.Success
-                    } catch (e: Exception) {
-                        _state.value = CrearCuentaState.Error(e.message ?: "Error al crear la cuenta")
-                    }
+                    errores.add("Las contraseñas no coinciden")
                 }
             }
+
+            // Si hay errores de validación, mostrarlos
+            if (errores.isNotEmpty()) {
+                _state.value = CrearCuentaState.Error(errores.joinToString("\\n"))
+                return@launch
+            }
+
+            // Si no hay errores, proceder con la creación de la cuenta
+            try {
+                val userData = mapOf(
+                    "nombre" to nombre,
+                    "telefono" to telefono,
+                    "provider" to "EMAIL",
+                    "createdAt" to System.currentTimeMillis()
+                )
+                authViewModel.createUserWithEmailAndPassword(email, password, userData)
+                _state.value = CrearCuentaState.Success
+            } catch (e: Exception) {
+                _state.value = CrearCuentaState.Error(translateFirebaseError(e.message ?: "Error al crear la cuenta"))
+            }
+        }
+    }
+
+    private fun translateFirebaseError(errorMessage: String): String {
+        return when {
+            errorMessage.contains("email already in use") ->
+                "Este correo electrónico ya está registrado"
+            errorMessage.contains("weak password") ->
+                "La contraseña es demasiado débil"
+            errorMessage.contains("invalid email") ->
+                "El formato del correo electrónico no es válido"
+            errorMessage.contains("network error") ->
+                "Error de conexión. Por favor, verifica tu conexión a internet"
+            else -> "Error al crear la cuenta: $errorMessage"
         }
     }
 

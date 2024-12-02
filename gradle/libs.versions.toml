@@ -17,6 +17,7 @@ firebaseAuthKtx = "23.0.0"
 firebaseFirestoreKtx = "25.1.1"
 volley = "1.2.1"
 preferenceKtx = "1.2.1"
+playServicesLocation = "21.3.0"
 
 [libraries]
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version = "1.5.4" }
@@ -43,6 +44,7 @@ firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx",
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
 volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
 androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "preferenceKtx" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
