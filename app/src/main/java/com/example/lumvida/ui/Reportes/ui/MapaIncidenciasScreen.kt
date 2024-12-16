@@ -1,3 +1,13 @@
+/*La pantalla permite a los usuarios visualizar marcadores de diferentes categorías de
+reportes (como bacheo, alumbrado público, drenajes obstruidos y basura acumulada) sobre
+ un mapa OpenStreetMap. Los usuarios pueden buscar ubicaciones, filtrar reportes por categoría,
+  ver detalles de incidencias al hacer clic en marcadores, y interactuar con controles de zoom
+  y ubicación. El mapa está configurado con límites geográficos específicos de Quintana Roo,
+  muestra la ubicación actual del usuario, y tiene funcionalidades como sugerencias de búsqueda,
+   manejo de permisos de ubicación, y gestión de estado de conexión a internet, todo esto implementado
+    de manera modular y reactiva utilizando las tecnologías de Kotlin, Jetpack Compose y la librería
+    osmdroid para renderizar mapas.*/
+
 package com.example.lumvida.ui.Reportes.ui
 
 import java.util.*

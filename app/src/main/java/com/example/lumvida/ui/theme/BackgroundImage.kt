@@ -1,3 +1,12 @@
+/*componente de Compose que se utiliza para crear un fondo dinámico según el tema
+(oscuro o claro). Este componente recibe una propiedad isDarkTheme que determina
+si se debe usar un fondo oscuro o claro, ajustando el color de fondo en función de
+la opción. Utiliza la librería Coil para cargar y mostrar una imagen de fondo (una para el
+ tema oscuro y otra para el claro) con un alpha de 0.5f, lo que hace que la imagen se vea
+  parcialmente transparente y permita que el contenido encima de ella sea más visible. El
+  content es una función composable que se renderiza encima de esta imagen de fondo,
+  permitiendo personalizar el contenido visual de la pantalla según las necesidades.*/
+
 package com.example.lumvida.ui.theme
 
 import androidx.compose.foundation.Image

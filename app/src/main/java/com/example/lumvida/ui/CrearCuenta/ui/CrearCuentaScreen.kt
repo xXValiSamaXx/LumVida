@@ -1,3 +1,11 @@
+/* permitir que los usuarios ingresen sus datos personales (nombre, correo, teléfono, contraseña)
+ para registrarse en el sistema. Implementa validaciones de entrada, muestra un indicador de
+ fortaleza de la contraseña y asegura que se cumplan requisitos específicos. También gestiona
+  estados como carga, errores y autenticación, redirigiendo a otras pantallas según sea necesario.
+   La interfaz está optimizada tanto para temas claros como oscuros, ofreciendo una experiencia visual
+    amigable y adaptada.*/
+
+
 package com.example.lumvida.ui.crearcuenta
 
 import androidx.compose.animation.animateColorAsState

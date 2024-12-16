@@ -1,3 +1,7 @@
+/*establece límites geográficos del estado (latitud y longitud mínima y máxima),
+ su centro geográfico, diferentes niveles de zoom para mapas (desde un zoom amplio
+ para ver todo el estado hasta un zoom muy cercano), y un radio de círculo de aproximadamente 15 metros.*/
+
 package com.example.lumvida.ui.CrearReporte.ui
 
 object MapConstants {

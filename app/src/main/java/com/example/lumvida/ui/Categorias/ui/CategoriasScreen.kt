@@ -1,3 +1,13 @@
+/*interfaz de usuario para la pantalla de categorías de la aplicación LumVida,
+donde los usuarios pueden seleccionar el tipo de reporte urbano que desean realizar.
+Utilizando Jetpack Compose, incluye un diseño visualmente adaptativo con soporte para
+temas claro y oscuro, una cuadrícula dinámica de botones representando categorías, y un
+encabezado con la fecha actual. Maneja el estado de conexión a Internet en tiempo real,
+mostrando un mensaje de error y un botón de reintento si no hay conexión. También emplea
+un efecto reactivo para cambiar el color de la barra de estado según el tema y asegura
+una experiencia fluida al cargar datos de categorías mediante la integración con un ViewModel.*/
+
+
 package com.example.lumvida.ui.Categorias.ui
 
 import android.os.Build

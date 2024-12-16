@@ -1,3 +1,15 @@
+/*ViewModel de Kotlin para manejar el proceso de inicio de sesión en una aplicación
+ Android utilizando Firebase Authentication. La clase LoginViewModel gestiona los
+  diferentes estados del inicio de sesión (inicial, cargando, éxito, necesita número de
+   teléfono, error), implementa validaciones para el correo electrónico y la contraseña,
+    y traduce los mensajes de error de Firebase a mensajes más amigables para el usuario.
+     Utiliza corrutinas y StateFlow para manejar de manera reactiva los estados de autenticación,
+      y proporciona métodos para iniciar sesión con correo electrónico y cuenta de Google, así como
+      para enviar un número de teléfono cuando es requerido. Incluye además una clase Factory para
+      la inyección de dependencias del ViewModel.*/
+
+
+
 package com.example.lumvida.ui.login.ui // Define el paquete donde se encuentra esta clase.
 
 import androidx.lifecycle.ViewModel // Importa la clase ViewModel para manejar el estado de la interfaz de usuario.

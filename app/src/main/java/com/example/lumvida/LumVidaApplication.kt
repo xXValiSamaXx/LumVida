@@ -1,3 +1,10 @@
+/*extiende de Application, y se encarga de inicializar ciertos componentes esenciales cuando
+la aplicación se crea. En primer lugar, se configura la base de datos AppDatabase y el repositorio
+ SearchHistoryRepository para gestionar el historial de búsquedas. Además, se realiza la configuración
+ de OSMDroid, una librería para manejar mapas en la aplicación. Se especifica el directorio de caché
+ para almacenar los archivos del mapa, se crea una caché de 100MB para los tiles (los fragmentos de los mapas),
+ y se establece un tiempo de expiración de los tiles de una semana.*/
+
 package com.example.lumvida
 
 import android.app.Application

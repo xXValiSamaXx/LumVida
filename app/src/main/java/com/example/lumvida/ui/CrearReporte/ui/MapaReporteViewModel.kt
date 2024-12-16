@@ -1,3 +1,16 @@
+/*gestiona el historial de búsquedas de ubicaciones. Sus principales funcionalidades son:
+
+Mantiene un flujo de búsquedas recientes utilizando un repositorio de historial de búsquedas.
+Permite guardar nuevas ubicaciones seleccionadas en el historial de búsquedas.
+Proporciona métodos para agregar y eliminar búsquedas recientes.
+Gestiona un estado de ubicación seleccionada con detalles como latitud, longitud y dirección.
+Utiliza corrutinas de Kotlin para operaciones asincrónicas.
+Incluye un Factory personalizado para la creación del ViewModel, que es un patrón común en la arquitectura
+ MVVM (Model-View-ViewModel) de Android.
+
+El ViewModel actúa como un intermediario entre la interfaz de usuario (el mapa) y el repositorio de
+ datos, gestionando la lógica de almacenamiento y recuperación de búsquedas de ubicaciones.*/
+
 package com.example.lumvida.ui.CrearReporte.ui
 
 import androidx.lifecycle.ViewModel

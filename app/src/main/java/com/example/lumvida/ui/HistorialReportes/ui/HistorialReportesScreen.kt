@@ -1,3 +1,12 @@
+/*Permite a los usuarios ver una lista de sus reportes previos, con información
+como folio, fecha y estado. Cuando un usuario selecciona un reporte, se abre un
+diálogo modal que muestra detalles completos del reporte, incluyendo una imagen
+(si está disponible), categoría, ubicación y descripción. La interfaz es sensible
+al tema oscuro/claro, maneja estados de carga y error, y proporciona una experiencia
+ de usuario fluida para revisar reportes históricos. El código incluye funcionalidades
+  como formateo de fechas, manejo dinámico de orientación de imágenes, y una presentación
+   elegante de la información del reporte.*/
+
 package com.example.lumvida.ui.HistorialReportes.ui
 
 import android.os.Build

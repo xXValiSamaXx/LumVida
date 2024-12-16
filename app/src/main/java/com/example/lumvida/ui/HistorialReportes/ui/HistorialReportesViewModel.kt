@@ -1,3 +1,21 @@
+/* gestionar la obtención y presentación del historial de reportes de un usuario en una
+aplicación Android con Firebase. Sus principales funcionalidades son:
+
+Conexión con Firestore para recuperar reportes
+Filtrar reportes por el ID del usuario autenticado
+Manejar estados de carga y error
+Mapear documentos de Firestore a objetos Reporte
+Ordenar los reportes por folio en orden descendente
+
+Características específicas:
+
+Usa StateFlow para manejar el estado de los reportes, la carga y los errores
+En el método cargarReportes(), realiza una consulta a Firebase para obtener solo los reportes del usuario actual
+Incluye un manejo de errores con logging
+Usa una fábrica personalizada para la creación del ViewModel que requiere un AuthViewModel
+La clase Reporte define la estructura de datos para cada reporte con propiedades como folio,
+dirección, fecha, estado, categoría, comentario y foto*/
+
 package com.example.lumvida.ui.HistorialReportes.ui
 
 import android.util.Log

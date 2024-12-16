@@ -1,3 +1,10 @@
+/*muestra un mensaje animado en la pantalla que indica el estado de
+la conexión a internet. Si se pierde la conexión, muestra un mensaje de
+"No tienes conexión", y cuando la conexión se restaura, muestra "Se restauró la conexión a internet".
+ El mensaje aparece de forma animada y desaparece automáticamente después de 3 segundos. Además,
+  el color del mensaje varía dependiendo del estado de la conexión: verde cuando está conectada
+  y rojo cuando no lo está.*/
+
 package com.example.lumvida.ui.components
 
 import androidx.compose.animation.*

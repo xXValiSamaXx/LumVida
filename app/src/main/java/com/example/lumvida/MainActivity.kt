@@ -1,3 +1,11 @@
+/* Inicializa Firebase y configura la interfaz mediante Jetpack Compose,
+estableciendo un sistema de navegación dinámico con Jetpack Navigation.
+Dependiendo del estado de autenticación del usuario, dirige a pantallas como inicio,
+login, reportes o creación de cuenta. Usa ViewModels para gestionar datos y lógica de
+pantallas clave como reportes, categorías y perfil del usuario, asegurando una experiencia
+fluida y modular en la aplicación.*/
+
+
 package com.example.lumvida
 
 import android.os.Build

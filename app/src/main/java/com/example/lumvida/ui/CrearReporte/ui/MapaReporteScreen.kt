@@ -1,3 +1,11 @@
+/* implementa una interfaz de mapa interactiva para seleccionar y confirmar ubicaciones.
+La pantalla permite al usuario ver su ubicación actual, buscar direcciones, y seleccionar
+ manualmente un punto en el mapa. Utiliza la biblioteca osmdroid para renderizar mapas de
+  OpenStreetMap, incluye controles de zoom, un bottom sheet para interacciones, y funcionalidades
+  como obtener la dirección actual mediante geocodificación inversa. El componente tiene dos modos
+   principales: uno para mostrar la ubicación actual y otro para selección manual de ubicación, con
+    la capacidad de confirmar la ubicación seleccionada y devolverla al componente padre.*/
+
 package com.example.lumvida.ui.CrearReporte.ui
 
 import android.Manifest

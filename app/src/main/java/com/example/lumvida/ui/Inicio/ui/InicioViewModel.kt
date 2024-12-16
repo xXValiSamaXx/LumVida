@@ -1,3 +1,17 @@
+/* gestiona el estado de autenticación, utilizando Kotlin Coroutines
+ y StateFlow para manejar de manera reactiva la autenticación del usuario.
+  El ViewModel recibe una instancia de AuthViewModel y se inicializa para
+  observar su estado de autenticación, actualizando un flujo booleano (_isAuthenticated)
+  que indica si el usuario está autenticado. Además, incluye una clase Factory personalizada
+  que permite la creación del ViewModel con una dependencia de AuthViewModel, siguiendo los
+  principios de inyección de dependencias y arquitectura MVVM en Android.
+
+  Corrutina: viewModelScope.launch {
+    authViewModel.authState.collect { state ->
+        _isAuthenticated.value = state is AuthState.Authenticated
+    }
+}*/
+
 package com.example.lumvida.ui.Inicio.ui
 
 import androidx.lifecycle.ViewModel

@@ -1,3 +1,11 @@
+/*define un tema personalizado para la aplicación LumVida utilizando Jetpack Compose.
+ En primer lugar, se establecen dos esquemas de colores: DarkColorScheme y LightColorScheme,
+  que determinan los colores primarios, secundarios, de fondo, de superficie y de texto según
+   el modo de tema (oscuro o claro). Luego, en la función LumVivaTheme, se selecciona el esquema
+    de colores adecuado según si el sistema está en modo oscuro o claro, y si el dispositivo es
+    compatible con colores dinámicos (disponibles desde Android 12).*/
+
+
 package com.example.lumvida.ui.theme
 
 import android.os.Build

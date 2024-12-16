@@ -1,3 +1,10 @@
+/*Este código establece una tipografía personalizada para la aplicación LumVida,
+utilizando la fuente Montserrat en diferentes estilos, todos en negrita. Se definen varios
+ tamaños y estilos de texto, como títulos, subtítulos y cuerpo de texto. Por ejemplo, los títulos
+  grandes tienen un tamaño de fuente de 36sp, mientras que el texto normal tiene 16sp. Además, se
+  ajustan el interlineado y el espaciado entre letras para mejorar la legibilidad. El propósito
+  es crear una apariencia consistente y atractiva en toda la aplicación.*/
+
 package com.example.lumvida.ui.theme
 
 import androidx.compose.material3.Typography

@@ -1,3 +1,12 @@
+/*el usuario puede interactuar con las funciones de hacer un reporte, ver los
+reportes previos y acceder a un mapa con incidencias urbanas. Si el usuario no
+ está autenticado, se le solicita iniciar sesión a través de un cuadro de diálogo.
+  El TopAppBar muestra un mensaje de bienvenida dependiendo del estado de autenticación
+  del usuario. Además, se proporcionan botones para hacer un reporte, ver los reportes
+   del usuario y acceder al mapa. Un FloatingActionButton permite acceder al mapa de
+   incidencias, pero solo si el usuario está autenticado. Si no lo está, el sistema solicita
+    el inicio de sesión.*/
+
 package com.example.lumvida.ui.Reportes.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme

@@ -1,3 +1,17 @@
+/*permite a los usuarios ver y editar su información personal (nombre y teléfono). La pantalla }
+incluye funcionalidades como:
+
+Mostrar datos del usuario (nombre, correo electrónico, teléfono)
+Modo de edición para actualizar información personal
+Botón de cerrar sesión
+Opción para descargar mapas offline con un diálogo de confirmación
+Soporte para temas oscuro y claro
+Manejo de estados de carga y edición
+Validaciones de entrada (como límite de 10 dígitos para el teléfono)
+Navegación entre pantallas
+
+La interfaz está diseñada de manera responsiva, utilizando componentes de Material Design 3*/
+
 package com.example.lumvida.ui.PerfilUsuario // Define el paquete donde se encuentra esta clase.
 
 import androidx.compose.foundation.isSystemInDarkTheme // Importa la función para detectar si el sistema está en modo oscuro.

@@ -1,3 +1,10 @@
+/*gestiona los datos del perfil del usuario, incluyendo la carga, edición y actualización
+ de la información personal (nombre, correo y teléfono) desde Firebase Firestore. Utiliza
+ flujos (StateFlow) para mantener y exponer el estado de estos datos. Además, gestiona la
+ funcionalidad del mapa, permitiendo la descarga de mapas offline y la gestión del caché con OSM.
+  También maneja la autenticación y tiene una función para cerrar sesión.*/
+
+
 package com.example.lumvida.ui.PerfilUsuario // Define el paquete donde se encuentra esta clase.
 
 import android.content.Context

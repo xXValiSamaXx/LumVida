@@ -1,3 +1,11 @@
+/*Utiliza FirebaseFirestore para obtener y escuchar los reportes en tiempo real,
+almacenándolos en una lista que es filtrada según la categoría seleccionada. El ViewModel
+ también maneja la localización del usuario, centrándose en la ubicación actual y ajustando
+  el mapa según la proximidad a Quintana Roo. Implementa funciones para obtener sugerencias
+   de búsqueda basadas en la ubicación, con un caché optimizado para mejorar el rendimiento,
+    y calcula la distancia entre ubicaciones. También gestiona permisos de ubicación,
+    asegurándose de que se tiene acceso antes de obtener la última posición conocida del usuario.*/
+
 package com.example.lumvida.ui.Reportes.ui
 
 import android.content.Context

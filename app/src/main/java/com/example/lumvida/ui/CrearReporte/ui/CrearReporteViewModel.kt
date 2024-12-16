@@ -1,3 +1,10 @@
+/*organiza el flujo de creación de un reporte mediante funciones clave.
+Permite capturar o subir imágenes, obtener la ubicación actual o manual, validar los
+datos ingresados, generar un folio único y enviar la información a Firebase. Además,
+ incluye funciones para guardar búsquedas recientes, filtrar por categorías, verificar
+ conexión a internet y manejar errores. Su objetivo es simplificar el proceso, garantizando
+  que los reportes sean precisos y completos antes de almacenarlos en la base de datos.*/
+
 package com.example.lumvida.ui.CrearReporte.ui
 
 import android.content.Context

@@ -1,3 +1,13 @@
+/*El código define un ViewModel en Android llamado CategoriasViewModel,
+ que gestiona el estado de las categorías de reportes en la aplicación.
+ Inicialmente, establece un conjunto de categorías predeterminadas (como "Bacheo",
+ "Alumbrado Público", "Drenajes Obstruidos" y "Basura Acumulada"). Luego, utiliza
+ una llamada a la API para obtener categorías adicionales, actualizando la lista de
+  categorías solo si la respuesta es exitosa. Maneja errores como fallos de conexión
+   o tiempo de espera, y asegura que las categorías por defecto estén disponibles en
+    caso de problemas. Además, el ViewModel gestiona la fecha actual en formato personalizado
+    y ofrece funciones para navegar entre pantallas y comprobar la conexión a Internet.*/
+
 package com.example.lumvida.ui.Categorias.ui
 
 import android.os.Build

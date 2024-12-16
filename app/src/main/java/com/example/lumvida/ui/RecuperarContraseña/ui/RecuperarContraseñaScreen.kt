@@ -1,3 +1,11 @@
+/*permite al usuario ingresar su correo electrónico y recibir instrucciones para
+restablecer su contraseña. Utiliza un Scaffold con una barra superior que incluye un ícono
+ de flecha hacia atrás para navegación, un campo de texto para el correo y un botón para enviar
+  la solicitud. El estado de la recuperación es manejado por un ViewModel, y se visualizan cambios
+  de estado mediante un CircularProgressIndicator en el botón durante el proceso de carga, así como
+  un Snackbar para mostrar mensajes de error. Si la recuperación es exitosa, se presenta un AlertDialog
+   informando al usuario que se enviaron las instrucciones al correo.*/
+
 package com.example.lumvida.ui.RecuperarContraseña.ui // Define el paquete donde se encuentra esta clase.
 
 import androidx.compose.foundation.isSystemInDarkTheme // Importa la función para verificar si el tema actual es oscuro.

@@ -1,3 +1,10 @@
+/* define una clase CustomInfoWindow que extiende InfoWindow para mostrar una ventana personalizada
+en un mapa. Esta ventana se asocia a un marcador (Marker) y muestra información sobre un reporte,
+como su categoría, dirección, fecha y estado. Cuando la ventana se abre (onOpen), se obtiene la
+información del reporte y se establece en las vistas correspondientes dentro de la ventana de información.
+ Además, se implementa un listener para cerrar la ventana al hacer clic. La fecha del reporte se formatea
+ mediante la función formatearFecha, que convierte un timestamp de Firebase en un formato legible. */
+
 package com.example.lumvida.ui.Reportes.ui
 
 import android.util.Log

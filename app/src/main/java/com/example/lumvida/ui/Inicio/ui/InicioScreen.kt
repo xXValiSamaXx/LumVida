@@ -1,3 +1,9 @@
+/*La pantalla maneja la presentación inicial de la aplicación, incluyendo un
+diálogo de términos y condiciones y un diálogo de permisos. Cuando se inicia
+la aplicación, primero muestra el logotipo y una descripción, y luego solicita
+ al usuario que acepte los términos y conceda permisos de ubicación y cámara antes
+  de permitirle continuar. */
+
 package com.example.lumvida.ui.Inicio.ui
 
 import android.Manifest

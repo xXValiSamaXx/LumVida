@@ -1,3 +1,11 @@
+/*gestiona el estado de la recuperación de contraseña mediante un flujo mutable,
+ validando el correo electrónico y actualizando el estado a "Loading" mientras se
+  procesa. Si el correo es válido, se llama al AuthViewModel para restablecer la
+  contraseña. El estado de la recuperación puede ser "Loading", "Success" o "Error",
+   según el estado de autenticación. Se incluye una clase Factory para crear instancias
+   del ViewModel con el AuthViewModel como dependencia. Los estados se definen en la clase
+    sellada RecuperarContraseñaState.*/
+
 package com.example.lumvida.ui.RecuperarContrasena.ui // Define el paquete donde se encuentra esta clase.
 
 import androidx.lifecycle.ViewModel // Importa la clase ViewModel para la lógica de la vista.

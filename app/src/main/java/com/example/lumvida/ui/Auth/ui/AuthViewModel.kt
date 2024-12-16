@@ -1,3 +1,12 @@
+/*gestiona toda la lógica de autenticación en la aplicación LumVida,
+permitiendo registrar, iniciar sesión y cerrar sesión de usuarios utilizando
+Firebase Authentication y Firestore. Implementa métodos para autenticar con correo,
+ contraseña o Google, almacenar datos adicionales como nombre y teléfono en Firestore,
+ verificar el estado de autenticación, enviar correos de restablecimiento de contraseña y
+ actualizar información del usuario. Además, utiliza un flujo de estado reactivo (StateFlow)
+  para actualizar dinámicamente las vistas según los cambios en la autenticación, asegurando
+   una experiencia de usuario fluida*/
+
 package com.example.lumvida.ui.Auth.ui
 
 import androidx.lifecycle.ViewModel

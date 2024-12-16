@@ -1,3 +1,11 @@
+/*define un ViewModel llamado CrearCuentaViewModel, que gestiona la lógica para crear cuentas
+en la aplicación. Se encarga de validar los datos ingresados (como nombre, correo, teléfono
+y contraseña) asegurando que cumplan con los formatos requeridos, como contraseñas seguras y
+ correos válidos. Si todo está correcto, utiliza Firebase, a través de AuthViewModel, para
+ registrar al usuario. Además, maneja diferentes estados (inicial, cargando,
+éxito o error) para que la interfaz pueda reaccionar de manera adecuada,
+mostrando mensajes claros si ocurre un problema.*/
+
 package com.example.lumvida.ui.crearcuenta
 
 import androidx.lifecycle.ViewModel

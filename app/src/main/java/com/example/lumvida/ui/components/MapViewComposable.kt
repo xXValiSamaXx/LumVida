@@ -1,3 +1,9 @@
+/*crea un mapa en la aplicación usando Jetpack Compose y osmdroid.
+ La función rememberMapViewWithLifecycle maneja el ciclo de vida del mapa para
+ asegurarse de que se active cuando la aplicación está en uso y se detenga cuando
+ no lo está. Luego, la función MapView muestra el mapa en la interfaz y permite realizar
+ acciones al crear el mapa, como configurarlo o agregar eventos.*/
+
 package com.example.lumvida.ui.components
 
 import android.view.ViewGroup

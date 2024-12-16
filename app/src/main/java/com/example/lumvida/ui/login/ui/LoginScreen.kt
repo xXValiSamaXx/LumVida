@@ -1,3 +1,12 @@
+/*permite a los usuarios iniciar sesión utilizando correo electrónico y contraseña,
+o mediante inicio de sesión con Google. Incluye validaciones en tiempo real, manejo
+de estados (carga, error, solicitud de número telefónico), gestión de temas oscuro/claro,
+ control de teclado, y navegación entre pantallas. Utiliza un ViewModel (LoginViewModel)
+ para manejar la lógica de autenticación, implementa un diálogo para solicitar número telefónico
+ si es necesario, y proporciona opciones como recuperación de contraseña y registro de nuevos usuarios,
+ todo con un diseño responsive y adaptable a diferentes temas.*/
+
+
 package com.example.lumvida.ui.login.ui // Define el paquete donde se encuentra esta clase.
 
 import android.app.Activity // Importa la clase Activity.

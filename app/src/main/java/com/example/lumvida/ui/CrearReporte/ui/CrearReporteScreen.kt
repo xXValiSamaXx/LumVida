@@ -1,3 +1,11 @@
+/*interfaz para crear reportes en la aplicación LumVida,
+permitiendo a los usuarios capturar fotos, seleccionar imágenes de
+la galería y añadir detalles como su nombre, teléfono, dirección y comentarios
+sobre el problema reportado. Incluye funciones para manejar permisos, interacciones
+con la cámara y la galería, además de una interfaz dinámica que cambia según el tema
+ (oscuro o claro) y el estado de autenticación del usuario. También permite seleccionar
+  la ubicación en un mapa y presenta mensajes de error en caso de datos faltantes.*/
+
 package com.example.lumvida.ui.CrearReporte.ui
 
 import android.Manifest

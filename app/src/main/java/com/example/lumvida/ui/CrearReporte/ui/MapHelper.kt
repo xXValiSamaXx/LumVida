@@ -1,3 +1,21 @@
+/*MarkerState: Una clase de datos para representar el estado de un marcador en el mapa, incluyendo su posición y si es arrastrable.
+MapState: Una clase de datos para gestionar el estado general del mapa, como el modo de selección
+de ubicación y los niveles de zoom.
+Coordinates: Una clase de datos para manejar coordenadas geográficas, con un
+método para convertirlas a un punto geográfico.
+MapBounds: Un objeto que define los límites geográficos de Quintana Roo.
+GeocodingManager: Una clase que maneja la geocodificación, permitiendo:
+
+Obtener la dirección de una ubicación específica
+Formatear direcciones de manera legible
+Manejar casos donde no se puede encontrar una dirección completa
+
+MapConfiguration: Una clase para configurar la biblioteca OSMdroid, estableciendo:
+
+Preferencias de caché de tiles
+Configuraciones de descarga y almacenamiento de mapas
+Optimizaciones de rendimiento*/
+
 package com.example.lumvida.ui.CrearReporte.ui
 
 import android.Manifest

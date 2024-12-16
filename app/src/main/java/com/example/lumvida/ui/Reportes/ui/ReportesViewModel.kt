@@ -1,3 +1,11 @@
+/* gestiona la autenticación del usuario y la obtención de su nombre desde Firebase Firestore.
+ Inicializa el estado de autenticación observando el AuthViewModel y, si el usuario está autenticado,
+  obtiene su nombre desde Firestore, primero desde el caché local y, si es necesario, desde el servidor.
+   Si no se puede obtener el nombre, establece un nombre predeterminado basado en el displayName o el
+   correo del usuario. Utiliza corutinas y flujos para manejar operaciones asíncronas, como obtener datos
+   de Firestore. Además, proporciona un método para cerrar sesión y una clase Factory para crear el ViewModel
+   con el AuthViewModel como parámetro.*/
+
 package com.example.lumvida.ui.Reportes.ui // Define el paquete donde se encuentra esta clase.
 
 import androidx.lifecycle.ViewModel // Importa la clase ViewModel para manejar la lógica de la interfaz de usuario.
