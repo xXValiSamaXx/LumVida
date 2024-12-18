@@ -169,3 +169,8 @@ object RetrofitClient {
     }
 
 }
+
+/*Este código configura una arquitectura de red robusta en una aplicación Android usando
+Retrofit y OkHttp. Se realiza la configuración de clientes HTTP, manejo de DNS personalizado,
+ log de solicitudes/respuestas, y verificación de conectividad de red, todo para asegurar que
+ las interacciones con las APIs externas sean eficientes y seguras.*/

@@ -35,6 +35,10 @@ data class OverpassGeometry(
     val lon: Double
 )
 
+
+/*define una función buildStreetQuery que genera una consulta para la API Overpass.
+Recibe latitud, longitud y el nombre de una calle, buscando caminos cercanos en un radio de 300 metros.*/
+
 class OverpassService {
     companion object {
         private const val TIMEOUT = 30L
@@ -51,6 +55,10 @@ class OverpassService {
                 out body geom;
             """.trimIndent()
         }
+
+        /*La función filtra los elementos de tipo "way" en la respuesta, extrae sus coordenadas
+        y las convierte en objetos GeoPoint, devolviendo una lista con esas coordenadas.
+         Si no hay coordenadas, se omite ese "way".*/
 
         fun parseGeometryFromResponse(response: OverpassResponse): List<GeoPoint> {
             return response.elements

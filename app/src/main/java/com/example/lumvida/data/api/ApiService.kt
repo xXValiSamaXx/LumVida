@@ -1,3 +1,9 @@
+/*utiliza Retrofit para realizar solicitudes HTTP en una app Android. Contiene métodos
+ para interactuar con una API, como enviar datos (POST) y obtener respuestas, buscar ubicaciones
+  (GET) y recuperar información de geometría de calles. Cada método especifica la ruta del servidor,
+ los parámetros y el tipo de respuesta esperada. Sirve para conectar la aplicación con servicios
+  externos de forma sencilla y ordenada.*/
+
 package com.example.lumvida.network.api
 
 import com.example.lumvida.network.model.NominatimResponse

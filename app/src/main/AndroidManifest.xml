@@ -1,39 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.lumvida">
+    package="com.example.lumvida"> <!-- Define el nombre del paquete único de la aplicación -->
+
 
     <!-- Permisos de red mejorados -->
+
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Permiso para acceder a Internet, necesario para realizar conexiones de red -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Permiso para verificar el estado de la red (conectado/desconectado) -->
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <!-- Permiso para cambiar el estado de la conexión de red -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- Permiso para acceder al estado del Wi-Fi -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- Permiso para cambiar el estado del Wi-Fi -->
+
+
 
     <!-- Permisos de ubicación mejorados -->
+
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Permiso para obtener la ubicación aproximada del dispositivo (menos precisa) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Permiso para obtener la ubicación exacta del dispositivo mediante GPS -->
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- Permiso para acceder a la ubicación cuando la app está en segundo plano (Android 10 o superior) -->
 
-    <!--Permisos cámara-->
+
+    <!-- Permisos para la cámara -->
+
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Permiso para usar la cámara del dispositivo -->
     <uses-feature android:name="android.hardware.camera" android:required="true" />
+    <!-- Declara que la app requiere obligatoriamente una cámara -->
 
-    <!--Permisos de OpenStreetMap-->
+
+    <!-- Permisos de OpenStreetMap -->
+
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Permiso duplicado para Internet -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Permiso duplicado para el estado de la red -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Permiso duplicado para la ubicación aproximada -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Permiso duplicado para la ubicación exacta -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28"/>
+    <!-- Permiso para escribir en almacenamiento externo (solo hasta API 28) -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
+    <!-- Permiso para leer almacenamiento externo (hasta API 32) -->
 
-    <!-- Feature de cámara-->
+    <!-- Características de la cámara -->
     <uses-feature
         android:name="android.hardware.camera.autofocus"
         android:required="true" />
+    <!-- Declara que la cámara necesita autofoco; si no existe, la app no funcionará -->
 
+
+
+    <!-- Define configuraciones de seguridad de red, referenciando un archivo XML -->
     <application
         android:name=".LumVidaApplication"
         android:usesCleartextTraffic="true"
@@ -46,8 +75,9 @@
         android:roundIcon="@mipmap/icon_white_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.LumViva"
-        android:enableOnBackInvokedCallback="true"
-        tools:targetApi="33">
+        android:enableOnBackInvokedCallback="true" tools:targetApi="33">
+    <!-- Permite el manejo del botón "atrás" (API 33 o superior) -->
+
 
         <!--Provider de file_paths.xml-->
         <provider
@@ -58,16 +88,19 @@
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
+            <!-- Hace referencia al archivo "file_paths.xml" para definir rutas de archivos -->
         </provider>
 
         <activity
             android:name="com.example.lumvida.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.LumViva">
+            <!-- Define el tema para esta actividad -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
+                <!-- Declara que esta actividad es el punto de inicio -->
                 <category android:name="android.intent.category.LAUNCHER" />
+                <!-- Categoría que hace que la actividad sea visible en el lanzador (Launcher) -->
             </intent-filter>
         </activity>
     </application>

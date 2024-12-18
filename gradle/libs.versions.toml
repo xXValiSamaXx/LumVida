@@ -13,7 +13,12 @@ navigationCompose = "2.8.2"
 constraintlayoutCompose = "1.0.1"
 datastoreCoreAndroid = "1.1.1"
 datastorePreferencesCoreJvm = "1.1.1"
+# Versión de la biblioteca Firebase Authentication KTX, utilizada para manejar
+# la autenticación de usuarios en la aplicación con soporte optimizado para Kotlin.
 firebaseAuthKtx = "23.0.0"
+# Versión de la biblioteca Firebase Firestore KTX, utilizada para interactuar
+# con la base de datos NoSQL de Cloud Firestore, incluyendo soporte en tiempo
+# real y compatibilidad con Kotlin.
 firebaseFirestoreKtx = "25.1.1"
 volley = "1.2.1"
 preferenceKtx = "1.2.1"

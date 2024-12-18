@@ -37,3 +37,6 @@ class LumVidaApplication : Application() {
         }
     }
 }
+
+/*OSMDroid es una biblioteca de código abierto para el desarrollo de aplicaciones Android
+que permite la integración de mapas de OpenStreetMap (OSM) en una aplicación móvil.*/
